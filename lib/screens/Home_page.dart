@@ -48,6 +48,8 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: Text("Dashboard"),
+        centerTitle: true,
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
         leading: IconButton(

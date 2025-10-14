@@ -15,218 +15,226 @@ class RecentTransactionsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final balanceProvider = Provider.of<BalanceProvider>(context);
 
-    return Column(
-      children: [
-        // Header with See All button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Recent Transactions",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => History()),
-                  );
-                },
-                child: Text(
-                  'See All',
-                  style: TextStyle(
-                    color: Colors.lightBlue,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Header with See All button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Recent Transactions",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        // Transactions List with StreamBuilder
-        StreamBuilder<List<TransactionModel>>(
-          stream: balanceProvider.getLast10TransactionsStream(),
-          builder: (context, snapshot) {
-            // Loading state
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            // Error state
-            if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => History()),
+                    );
+                  },
                   child: Text(
-                    'Error loading transactions',
-                    style: TextStyle(color: Colors.red),
+                    'See All',
+                    style: TextStyle(
+                      color: Colors.lightBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              );
-            }
+              ],
+            ),
+          ),
 
-            final transactions = snapshot.data ?? [];
+          // Transactions List with StreamBuilder
+          StreamBuilder<List<TransactionModel>>(
+            stream: balanceProvider.getLast10TransactionsStream(),
+            builder: (context, snapshot) {
+              // Loading state
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
 
-            // Empty state
-            if (transactions.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(20),
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'No recent transactions',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+              // Error state
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Error loading transactions',
+                      style: TextStyle(color: Colors.red),
                     ),
-                    const Text(
-                      'Add your first income or expense!',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            }
+                  ),
+                );
+              }
 
-            // Transactions list
-            return Container(
-              constraints: const BoxConstraints(maxHeight: 400),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final tx = transactions[index];
-                  final isIncome = tx.isIncome;
-                  final imagePath = getCategoryImage(tx.category, tx.type);
+              final transactions = snapshot.data ?? [];
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TransactionDetailPage(
-                            transaction: tx,
-                            transactionId: tx.id!,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      color: Colors.white,
-
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              // Empty state
+              if (transactions.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.receipt_long,
+                        size: 64,
+                        color: Colors.grey[400],
                       ),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            // Category Icon
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isIncome
-                                    ? Colors.green.shade50
-                                    : Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                      const SizedBox(height: 8),
+                      const Text(
+                        'No recent transactions',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const Text(
+                        'Add your first income or expense!',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Transactions list
+              return Container(
+                constraints: const BoxConstraints(maxHeight: 400),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final tx = transactions[index];
+                    final isIncome = tx.isIncome;
+                    final imagePath = getCategoryImage(tx.category, tx.type);
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TransactionDetailPage(
+                              transaction: tx,
+                              transactionId: tx.id!,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        color: Colors.white,
+
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              // Category Icon
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
                                   color: isIncome
-                                      ? Colors.green.shade100
-                                      : Colors.red.shade100,
-                                  width: 1,
+                                      ? Colors.green.shade50
+                                      : Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isIncome
+                                        ? Colors.green.shade100
+                                        : Colors.red.shade100,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Image.asset(
+                                  imagePath,
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                              child: Image.asset(
-                                imagePath,
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
+                              const SizedBox(width: 12),
 
-                            // Transaction Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              // Transaction Details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.category,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      tx.description.isNotEmpty
+                                          ? tx.description
+                                          : 'No description',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Amount and Date
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    tx.category,
-                                    style: const TextStyle(
+                                    "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 13,
+                                      color: isIncome
+                                          ? Colors.green
+                                          : Colors.red,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    tx.description.isNotEmpty
-                                        ? tx.description
-                                        : 'No description',
+                                    DateFormat('MMM dd, yyyy').format(tx.date),
                                     style: TextStyle(
                                       color: Colors.grey[600],
-                                      fontSize: 14,
+                                      fontSize: 12,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
+                                  ),
+                                  Text(
+                                    DateFormat('hh:mm a').format(tx.date),
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-
-                            // Amount and Date
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: isIncome ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  DateFormat('MMM dd, yyyy').format(tx.date),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  DateFormat('hh:mm a').format(tx.date),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-      ],
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
