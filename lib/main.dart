@@ -6,10 +6,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
+import 'firebase_options.dart'; // <-- import your generated file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // Initialize Firebase for current platform (web included)
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     MultiProvider(
@@ -41,9 +44,9 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          // If user is logged in, go to Profile Page or Home Page
+          // If user is logged in, go to Home Page
           if (snapshot.hasData) {
-            return HomePage(); // Replace with your main/home page if needed
+            return HomePage();
           }
 
           // Otherwise show login page
