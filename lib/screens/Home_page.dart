@@ -1,11 +1,13 @@
-// home_page.dart
-import 'package:expense_track/Provider/balance_provider.dart'; // Updated import
+// home_page.dart - UPDATED FOR PER-USER DATA
+import 'package:expense_track/Login/Login.dart';
+import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/graph/graph.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:expense_track/screens/expense_page.dart';
 import 'package:expense_track/screens/income_page.dart';
-import 'package:expense_track/transaction/recent10.dart';
 import 'package:expense_track/screens/overview.dart';
+import 'package:expense_track/services/auth_service.dart';
+import 'package:expense_track/transaction/recent10.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -43,6 +45,18 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(onPressed: () {}, icon: Icon(Icons.notifications)),
+          // Add logout button
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await Provider.of<AuthService>(context, listen: false).signOut();
+              Provider.of<BalanceProvider>(context, listen: false).clearUser();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => LoginPage()),
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -57,7 +71,7 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 8),
             // Balance will now update in real-time via the provider
             Text(
-              'AED ${balanceProvider.balance.toStringAsFixed(2)}',
+              'AED ${balanceProvider.formattedBalance}',
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
@@ -130,7 +144,7 @@ class _HomePageState extends State<HomePage> {
             // Graph section - will update in real-time via provider
             SpendChart(),
 
-            // Recent transactions using Firestore stream
+            // Recent transactions using the updated BalanceProvider stream
             RecentTransactionsWidget(),
           ],
         ),
@@ -139,103 +153,124 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Updated RecentTransactions to use Firestore stream
-// class RecentTransactionsWithStream extends StatelessWidget {
+// // NEW: Recent Transactions Section that uses BalanceProvider streams
+// class RecentTransactionsSection extends StatelessWidget {
 //   @override
 //   Widget build(BuildContext context) {
 //     final balanceProvider = Provider.of<BalanceProvider>(context);
 
-//     return StreamBuilder<List<TransactionModel>>(
-//       stream: balanceProvider.getLast10TransactionsStream(),
-//       builder: (context, snapshot) {
-//         if (snapshot.connectionState == ConnectionState.waiting) {
-//           return Center(child: CircularProgressIndicator());
-//         }
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Padding(
+//           padding: const EdgeInsets.symmetric(vertical: 16.0),
+//           child: Text(
+//             'Recent Transactions',
+//             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//           ),
+//         ),
+//         StreamBuilder<List<TransactionModel>>(
+//           stream: balanceProvider.getLast10TransactionsStream(),
+//           builder: (context, snapshot) {
+//             if (snapshot.connectionState == ConnectionState.waiting) {
+//               return Center(child: CircularProgressIndicator());
+//             }
 
-//         if (snapshot.hasError) {
-//           return Text('Error loading transactions: ${snapshot.error}');
-//         }
+//             if (snapshot.hasError) {
+//               return Text('Error loading transactions');
+//             }
 
-//         final transactions = snapshot.data ?? [];
+//             final transactions = snapshot.data ?? [];
 
-//         return Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Padding(
-//               padding: const EdgeInsets.symmetric(vertical: 16.0),
-//               child: Text(
-//                 'Recent Transactions',
-//                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//               ),
-//             ),
-//             if (transactions.isEmpty)
-//               Padding(
-//                 padding: const EdgeInsets.all(16.0),
-//                 child: Text(
-//                   'No transactions yet',
-//                   style: TextStyle(color: Colors.grey),
-//                   textAlign: TextAlign.center,
-//                 ),
-//               )
-//             else
-//               ...transactions
-//                   .map(
-//                     (transaction) => TransactionTile(
-//                       transaction: transaction,
-//                       onTap: () {
-//                         // You can add edit functionality here if needed
-//                       },
+//             if (transactions.isEmpty) {
+//               return Container(
+//                 padding: EdgeInsets.all(20),
+//                 child: Column(
+//                   children: [
+//                     Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+//                     SizedBox(height: 16),
+//                     Text(
+//                       'No transactions yet',
+//                       style: TextStyle(color: Colors.grey),
 //                     ),
-//                   )
-//                   .toList(),
-//           ],
-//         );
-//       },
+//                     Text(
+//                       'Add your first income or expense!',
+//                       style: TextStyle(color: Colors.grey),
+//                     ),
+//                   ],
+//                 ),
+//               );
+//             }
+
+//             return ListView.builder(
+//               shrinkWrap: true,
+//               physics: NeverScrollableScrollPhysics(),
+//               itemCount: transactions.length,
+//               itemBuilder: (context, index) {
+//                 final transaction = transactions[index];
+//                 return RecentTransactionCard(transaction: transaction);
+//               },
+//             );
+//           },
+//         ),
+//       ],
 //     );
 //   }
 // }
 
-// Simple transaction tile widget (you might already have this)
-class TransactionTile extends StatelessWidget {
-  final TransactionModel transaction;
-  final VoidCallback onTap;
+// // NEW: Transaction Card Widget
+// class RecentTransactionCard extends StatelessWidget {
+//   final TransactionModel transaction;
 
-  const TransactionTile({
-    super.key,
-    required this.transaction,
-    required this.onTap,
-  });
+//   const RecentTransactionCard({super.key, required this.transaction});
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: transaction.isIncome
-                ? Colors.green.shade100
-                : Colors.red.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            transaction.isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-            color: transaction.isIncome ? Colors.green : Colors.red,
-          ),
-        ),
-        title: Text(transaction.description),
-        subtitle: Text(transaction.category),
-        trailing: Text(
-          'AED ${transaction.amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            color: transaction.isIncome ? Colors.green : Colors.red,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        onTap: onTap,
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final isIncome = transaction.isIncome;
+
+//     return Card(
+//       margin: EdgeInsets.symmetric(vertical: 4),
+//       child: ListTile(
+//         leading: Container(
+//           width: 40,
+//           height: 40,
+//           decoration: BoxDecoration(
+//             color: isIncome
+//                 ? Colors.green.withOpacity(0.2)
+//                 : Colors.red.withOpacity(0.2),
+//             shape: BoxShape.circle,
+//           ),
+//           child: Icon(
+//             isIncome ? Icons.arrow_upward : Icons.arrow_downward,
+//             color: isIncome ? Colors.green : Colors.red,
+//           ),
+//         ),
+//         title: Text(
+//           transaction.description,
+//           style: TextStyle(fontWeight: FontWeight.w500),
+//         ),
+//         subtitle: Text(
+//           transaction.category,
+//           style: TextStyle(color: Colors.grey[600]),
+//         ),
+//         trailing: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           crossAxisAlignment: CrossAxisAlignment.end,
+//           children: [
+//             Text(
+//               'AED ${transaction.amount.toStringAsFixed(2)}',
+//               style: TextStyle(
+//                 fontWeight: FontWeight.bold,
+//                 color: isIncome ? Colors.green : Colors.red,
+//               ),
+//             ),
+//             Text(
+//               '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
+//               style: TextStyle(fontSize: 12, color: Colors.grey),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

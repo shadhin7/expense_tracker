@@ -1,6 +1,4 @@
-// transaction_model.dart
-// Remove Hive imports and annotations
-
+// transaction_model.dart - UPDATED
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TransactionModel {
@@ -12,7 +10,8 @@ class TransactionModel {
   String description;
   String wallet;
   String? imagePath;
-  String monthYear; // Added for monthly filtering
+  String monthYear;
+  final String userId; // This is crucial for per-user data
 
   TransactionModel({
     this.id,
@@ -23,11 +22,12 @@ class TransactionModel {
     required this.description,
     required this.wallet,
     this.imagePath,
+    required this.userId, // Make this required
   }) : monthYear = '${date.year}-${date.month.toString().padLeft(2, '0')}';
 
   bool get isIncome => type.toLowerCase() == 'income';
 
-  // Convert to Map for Firestore
+  // Convert to Map for Firestore - UPDATED
   Map<String, dynamic> toMap() {
     return {
       'amount': amount,
@@ -39,11 +39,12 @@ class TransactionModel {
       'imagePath': imagePath,
       'monthYear': monthYear,
       'isIncome': isIncome,
+      'userId': userId, // ADD THIS - CRITICAL!
       'createdAt': FieldValue.serverTimestamp(),
     };
   }
 
-  // Create from Firestore document
+  // Create from Firestore document - UPDATED
   factory TransactionModel.fromMap(
     Map<String, dynamic> map,
     String documentId,
@@ -57,10 +58,11 @@ class TransactionModel {
       description: map['description'] ?? '',
       wallet: map['wallet'] ?? '',
       imagePath: map['imagePath'],
+      userId: map['userId'] ?? '', // ADD THIS - CRITICAL!
     );
   }
 
-  // Copy with method for editing
+  // Copy with method for editing - UPDATED
   TransactionModel copyWith({
     String? id,
     double? amount,
@@ -70,6 +72,7 @@ class TransactionModel {
     String? description,
     String? wallet,
     String? imagePath,
+    String? userId, // ADD THIS
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -80,6 +83,7 @@ class TransactionModel {
       description: description ?? this.description,
       wallet: wallet ?? this.wallet,
       imagePath: imagePath ?? this.imagePath,
+      userId: userId ?? this.userId, // ADD THIS
     );
   }
 }

@@ -1,4 +1,4 @@
-// balance_provider.dart - Updated version
+// balance_provider.dart - FINAL VERSION
 import 'package:expense_track/models/tansaction_entry.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +7,14 @@ import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
 
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 
 class BalanceProvider with ChangeNotifier {
   double _balance = 0;
   double _totalIncome = 0;
   double _totalExpense = 0;
   List<TransactionEntry> _transactions = [];
+  String? _currentUserId;
 
   final FirestoreService _firestoreService = FirestoreService();
 
@@ -26,7 +28,29 @@ class BalanceProvider with ChangeNotifier {
   String get formattedTotalExpense => formatAmount(_totalExpense);
 
   BalanceProvider() {
+    _initializeUserData();
+  }
+
+  // Initialize with user data
+  void _initializeUserData() {
+    // This will be called when the app starts
+    // We'll manually check for current user in build methods
+  }
+
+  // Call this method when you know the user is logged in
+  void setUser(String userId) {
+    _currentUserId = userId;
     _loadCurrentMonthData();
+  }
+
+  // Clear data when user logs out
+  void clearUser() {
+    _currentUserId = null;
+    _balance = 0;
+    _totalIncome = 0;
+    _totalExpense = 0;
+    _transactions = [];
+    notifyListeners();
   }
 
   String _getMonthKey(DateTime date) {
@@ -41,6 +65,8 @@ class BalanceProvider with ChangeNotifier {
     String wallet,
     String? capturedImagePath,
   ) async {
+    if (_currentUserId == null) return;
+
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
@@ -50,9 +76,10 @@ class BalanceProvider with ChangeNotifier {
       description: description,
       wallet: wallet,
       imagePath: capturedImagePath,
+      userId: _currentUserId!,
     );
 
-    await _firestoreService.addTransaction(tx);
+    await _firestoreService.addTransaction(tx, _currentUserId!);
 
     if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
       _transactions.add(TransactionEntry(tx.id!, tx));
@@ -70,6 +97,8 @@ class BalanceProvider with ChangeNotifier {
     String wallet,
     String? capturedImagePath,
   ) async {
+    if (_currentUserId == null) return;
+
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
@@ -79,9 +108,10 @@ class BalanceProvider with ChangeNotifier {
       description: description,
       wallet: wallet,
       imagePath: capturedImagePath,
+      userId: _currentUserId!,
     );
 
-    await _firestoreService.addTransaction(tx);
+    await _firestoreService.addTransaction(tx, _currentUserId!);
 
     if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
       _transactions.add(TransactionEntry(tx.id!, tx));
@@ -93,7 +123,8 @@ class BalanceProvider with ChangeNotifier {
 
   // Delete Transaction with Firestore
   Future<void> deleteTransaction(String transactionId) async {
-    await _firestoreService.deleteTransaction(transactionId);
+    if (_currentUserId == null) return;
+    await _firestoreService.deleteTransaction(transactionId, _currentUserId!);
     _loadCurrentMonthData();
   }
 
@@ -106,8 +137,11 @@ class BalanceProvider with ChangeNotifier {
     String newWallet,
     String? newImagePath,
   ) async {
+    if (_currentUserId == null) return;
+
     final existingTransaction = await _firestoreService.getTransaction(
       transactionId,
+      _currentUserId!,
     );
     if (existingTransaction == null) return;
 
@@ -136,9 +170,10 @@ class BalanceProvider with ChangeNotifier {
       description: newDescription,
       wallet: newWallet,
       imagePath: newImagePath,
+      userId: _currentUserId!,
     );
 
-    await _firestoreService.updateTransaction(updated);
+    await _firestoreService.updateTransaction(updated, _currentUserId!);
 
     if (isCurrentMonth) {
       if (wasIncome) {
@@ -163,16 +198,20 @@ class BalanceProvider with ChangeNotifier {
 
   // Load Current Month Data
   void _loadCurrentMonthData() {
+    if (_currentUserId == null) return;
     _loadMonthData(DateTime.now());
   }
 
   // Load Specific Month Data
   void loadMonth(DateTime selectedDate) {
+    if (_currentUserId == null) return;
     _loadMonthData(selectedDate);
   }
 
   // Load Month Data
   void _loadMonthData(DateTime targetDate) {
+    if (_currentUserId == null) return;
+
     final monthKey = _getMonthKey(targetDate);
 
     _balance = 0;
@@ -181,49 +220,56 @@ class BalanceProvider with ChangeNotifier {
     _transactions = [];
 
     // Listen to Firestore stream for this month
-    _firestoreService.getMonthlyTransactionsStream(monthKey).listen((
-      transactions,
-    ) {
-      _balance = 0;
-      _totalIncome = 0;
-      _totalExpense = 0;
-      _transactions = [];
+    _firestoreService
+        .getMonthlyTransactionsStream(monthKey, _currentUserId!)
+        .listen((transactions) {
+          _balance = 0;
+          _totalIncome = 0;
+          _totalExpense = 0;
+          _transactions = [];
 
-      for (final tx in transactions) {
-        _transactions.add(TransactionEntry(tx.id!, tx));
-        if (tx.isIncome) {
-          _balance += tx.amount;
-          _totalIncome += tx.amount;
-        } else {
-          _balance -= tx.amount;
-          _totalExpense += tx.amount;
-        }
-      }
+          for (final tx in transactions) {
+            _transactions.add(TransactionEntry(tx.id!, tx));
+            if (tx.isIncome) {
+              _balance += tx.amount;
+              _totalIncome += tx.amount;
+            } else {
+              _balance -= tx.amount;
+              _totalExpense += tx.amount;
+            }
+          }
 
-      notifyListeners();
-    });
+          notifyListeners();
+        });
   }
 
   // Stream Methods
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(String monthKey) {
-    return _firestoreService.getMonthlyTransactionsStream(monthKey);
+    if (_currentUserId == null) return Stream.value([]);
+    return _firestoreService.getMonthlyTransactionsStream(
+      monthKey,
+      _currentUserId!,
+    );
   }
 
   Stream<List<TransactionModel>> getLast10TransactionsStream() {
-    return _firestoreService.getLast10TransactionsStream();
+    if (_currentUserId == null) return Stream.value([]);
+    return _firestoreService.getLast10TransactionsStream(_currentUserId!);
   }
 
   Stream<Map<String, double>> getMonthlySummaryStream(DateTime date) {
+    if (_currentUserId == null) return Stream.value({});
     final monthKey = _getMonthKey(date);
-    return _firestoreService.getMonthlySummaryStream(monthKey);
+    return _firestoreService.getMonthlySummaryStream(monthKey, _currentUserId!);
   }
 
   Stream<List<String>> getAvailableMonthsStream() {
-    return _firestoreService.getAvailableMonthsStream();
+    if (_currentUserId == null) return Stream.value([]);
+    return _firestoreService.getAvailableMonthsStream(_currentUserId!);
   }
 }
 
-// Format helper
+// Format helper (unchanged)
 String formatAmount(double amount) {
   if (amount >= 10000) {
     return "${(amount / 1000).toStringAsFixed(1)}k";
@@ -232,7 +278,7 @@ String formatAmount(double amount) {
   }
 }
 
-// Month picker
+// Month picker (unchanged)
 void pickMonth(BuildContext context) async {
   final selected = await showMonthPicker(
     context: context,

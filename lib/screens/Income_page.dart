@@ -1,7 +1,6 @@
-import 'package:expense_track/Provider/balance_provider.dart'; // Updated import
+import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/image_capture.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
-import 'package:expense_track/screens/home_page.dart'; // Fixed case
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -30,6 +29,7 @@ class _IncomePageState extends State<IncomePage> {
   String? _selectedCategory;
   String? _selectedWallet;
   bool isRepeat = false;
+  bool _isSubmitting = false; // Added loading state
 
   final List<String> _categories = ['Salary', 'Freelance', 'Bonus'];
   final List<String> _wallets = ['Cash', 'Bank', 'Card'];
@@ -39,6 +39,68 @@ class _IncomePageState extends State<IncomePage> {
     _amountController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitIncome(double amount) async {
+    if (_isSubmitting) return; // Prevent multiple submissions
+
+    // Validate required fields
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedWallet == null || _selectedWallet!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a wallet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await Provider.of<BalanceProvider>(context, listen: false).addIncome(
+        amount,
+        _selectedCategory!,
+        _descriptionController.text.trim(),
+        _selectedWallet!,
+        _capturedImagePath,
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Income added successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate back to home page
+      Navigator.pop(context);
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding income: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   @override
@@ -94,40 +156,7 @@ class _IncomePageState extends State<IncomePage> {
                 imagePath: _capturedImagePath,
                 onCaptureImage: _handleCaptureImage,
                 onSubmit: (amount) async {
-                  try {
-                    await Provider.of<BalanceProvider>(
-                      context,
-                      listen: false,
-                    ).addIncome(
-                      amount,
-                      _selectedCategory ?? 'Other',
-                      _descriptionController.text.trim(),
-                      _selectedWallet ?? 'Cash',
-                      _capturedImagePath,
-                    );
-
-                    // Navigate back to home page
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => HomePage()),
-                    );
-
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Income added successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } catch (e) {
-                    // Show error message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding income: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  await _submitIncome(amount);
                 },
                 selectedCategory: _selectedCategory,
                 selectedWallet: _selectedWallet,
@@ -145,6 +174,7 @@ class _IncomePageState extends State<IncomePage> {
                 },
                 amountController: _amountController,
                 descriptionController: _descriptionController,
+                isLoading: _isSubmitting, // Pass loading state to form
               ),
             ),
           ),

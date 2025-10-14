@@ -29,7 +29,7 @@ class TransactionDetailPage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: isIncome ? Colors.green : Colors.red,
         title: Text(
-          "Detail Transaction",
+          "Transaction Details", // Improved title
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: 16,
@@ -46,7 +46,7 @@ class TransactionDetailPage extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Delete Transaction'),
                   content: const Text(
-                    'Are you sure you want to delete this transaction?',
+                    'Are you sure you want to delete this transaction? This action cannot be undone.',
                   ),
                   actions: [
                     TextButton(
@@ -163,9 +163,16 @@ class TransactionDetailPage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildInfoColumn("Type", transaction.type),
+                      _buildInfoColumn(
+                        "Type",
+                        transaction.type[0].toUpperCase() +
+                            transaction.type.substring(1),
+                      ), // Capitalize type
                       _buildInfoColumn("Category", transaction.category),
-                      _buildInfoColumn("Payment", transaction.wallet),
+                      _buildInfoColumn(
+                        "Wallet",
+                        transaction.wallet,
+                      ), // Better label
                     ],
                   ),
                 ),
@@ -173,21 +180,32 @@ class TransactionDetailPage extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Description
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Description:",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    transaction.description.isNotEmpty
-                        ? transaction.description
-                        : 'No Description',
-                    style: const TextStyle(fontSize: 13),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Description",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        transaction.description.isNotEmpty
+                            ? transaction.description
+                            : 'No description provided',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -205,56 +223,69 @@ class TransactionDetailPage extends StatelessWidget {
                 future: _checkImageExists(transaction.imagePath!),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (snapshot.hasData && snapshot.data == true) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FullScreenImageViewer(
-                              imagePath: transaction.imagePath!,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            "Attachment",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              color: Colors.grey[700],
                             ),
                           ),
-                        );
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(transaction.imagePath!),
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              width: double.infinity,
-                              color: Colors.grey[300],
-                              child: const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.broken_image,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                  Text('Image not available'),
-                                ],
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FullScreenImageViewer(
+                                  imagePath: transaction.imagePath!,
+                                ),
                               ),
                             );
                           },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(transaction.imagePath!),
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 200,
+                                  width: double.infinity,
+                                  color: Colors.grey[300],
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                      Text('Image not available'),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     );
                   } else {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'No attachment available',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
+                    return const Text(
+                      'Attachment not available',
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
                     );
                   }
                 },
@@ -264,14 +295,14 @@ class TransactionDetailPage extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'No attachment available',
+                'No attachment',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
 
           const Spacer(),
 
-          // Edit Button - FIXED
+          // Edit Button
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -290,13 +321,13 @@ class TransactionDetailPage extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => EditTransactionPage(
                         transaction: transaction,
-                        transactionId: transactionId, // ✅ FIXED
+                        transactionId: transactionId,
                       ),
                     ),
                   );
                 },
                 child: Text(
-                  "Edit",
+                  "Edit Transaction",
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,

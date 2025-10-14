@@ -1,15 +1,18 @@
-// services/firestore_service.dart - Enhanced version
+// services/firestore_service.dart - UPDATED FOR PER-USER DATA
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expense_track/models/transaction_model.dart';
 
 class FirestoreService {
-  final CollectionReference _transactionsCollection = FirebaseFirestore.instance
-      .collection('transactions');
+  // No need to store collection reference separately since we'll use it with queries
 
-  // Add a new transaction
-  Future<void> addTransaction(TransactionModel transaction) async {
+  // Add a new transaction - UPDATED
+  Future<void> addTransaction(
+    TransactionModel transaction,
+    String userId,
+  ) async {
     try {
-      await _transactionsCollection
+      await FirebaseFirestore.instance
+          .collection('transactions')
           .doc(transaction.id)
           .set(transaction.toMap());
     } catch (e) {
@@ -17,10 +20,14 @@ class FirestoreService {
     }
   }
 
-  // Update an existing transaction
-  Future<void> updateTransaction(TransactionModel transaction) async {
+  // Update an existing transaction - UPDATED
+  Future<void> updateTransaction(
+    TransactionModel transaction,
+    String userId,
+  ) async {
     try {
-      await _transactionsCollection
+      await FirebaseFirestore.instance
+          .collection('transactions')
           .doc(transaction.id)
           .update(transaction.toMap());
     } catch (e) {
@@ -28,24 +35,39 @@ class FirestoreService {
     }
   }
 
-  // Delete a transaction
-  Future<void> deleteTransaction(String transactionId) async {
+  // Delete a transaction - UPDATED
+  Future<void> deleteTransaction(String transactionId, String userId) async {
     try {
-      await _transactionsCollection.doc(transactionId).delete();
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(transactionId)
+          .delete();
     } catch (e) {
       throw Exception('Failed to delete transaction: $e');
     }
   }
 
-  // Get a single transaction
-  Future<TransactionModel?> getTransaction(String transactionId) async {
+  // Get a single transaction - UPDATED
+  Future<TransactionModel?> getTransaction(
+    String transactionId,
+    String userId,
+  ) async {
     try {
-      final doc = await _transactionsCollection.doc(transactionId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(transactionId)
+          .get();
+
       if (doc.exists) {
-        return TransactionModel.fromMap(
+        final transaction = TransactionModel.fromMap(
           doc.data() as Map<String, dynamic>,
           doc.id,
         );
+        // Optional: Verify the transaction belongs to the current user
+        if (transaction.userId == userId) {
+          return transaction;
+        }
+        return null;
       }
       return null;
     } catch (e) {
@@ -53,9 +75,11 @@ class FirestoreService {
     }
   }
 
-  // Stream of last 10 transactions for home page
-  Stream<List<TransactionModel>> getLast10TransactionsStream() {
-    return _transactionsCollection
+  // Stream of last 10 transactions for home page - UPDATED
+  Stream<List<TransactionModel>> getLast10TransactionsStream(String userId) {
+    return FirebaseFirestore.instance
+        .collection('transactions')
+        .where('userId', isEqualTo: userId) // ADD THIS FILTER
         .orderBy('date', descending: true)
         .limit(10)
         .snapshots()
@@ -72,12 +96,15 @@ class FirestoreService {
         );
   }
 
-  // Stream of monthly transactions for history page
+  // Stream of monthly transactions for history page - UPDATED
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(
     String monthYear,
+    String userId,
   ) {
-    return _transactionsCollection
+    return FirebaseFirestore.instance
+        .collection('transactions')
         .where('monthYear', isEqualTo: monthYear)
+        .where('userId', isEqualTo: userId) // ADD THIS FILTER
         .orderBy('date', descending: true)
         .snapshots()
         .handleError((error) => print("Firestore Error: $error"))
@@ -93,10 +120,15 @@ class FirestoreService {
         );
   }
 
-  // Stream of monthly summary for graphs
-  Stream<Map<String, double>> getMonthlySummaryStream(String monthYear) {
-    return _transactionsCollection
+  // Stream of monthly summary for graphs - UPDATED
+  Stream<Map<String, double>> getMonthlySummaryStream(
+    String monthYear,
+    String userId,
+  ) {
+    return FirebaseFirestore.instance
+        .collection('transactions')
         .where('monthYear', isEqualTo: monthYear)
+        .where('userId', isEqualTo: userId) // ADD THIS FILTER
         .snapshots()
         .handleError((error) => print("Firestore Error: $error"))
         .map((snapshot) {
@@ -123,9 +155,11 @@ class FirestoreService {
         });
   }
 
-  // Stream of available months for filter dropdown
-  Stream<List<String>> getAvailableMonthsStream() {
-    return _transactionsCollection
+  // Stream of available months for filter dropdown - UPDATED
+  Stream<List<String>> getAvailableMonthsStream(String userId) {
+    return FirebaseFirestore.instance
+        .collection('transactions')
+        .where('userId', isEqualTo: userId) // ADD THIS FILTER
         .orderBy('monthYear', descending: true)
         .snapshots()
         .handleError((error) => print("Firestore Error: $error"))

@@ -1,7 +1,6 @@
-import 'package:expense_track/Provider/balance_provider.dart'; // Updated import
+import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/image_capture.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
-import 'package:expense_track/screens/home_page.dart'; // Fixed case
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,8 +12,7 @@ class ExpensePage extends StatefulWidget {
 }
 
 class _ExpensePageState extends State<ExpensePage> {
-  final TextEditingController _expenseController =
-      TextEditingController(); // Fixed naming
+  final TextEditingController _expenseController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String? _capturedImagePath;
 
@@ -30,11 +28,11 @@ class _ExpensePageState extends State<ExpensePage> {
   String? _selectedCategory;
   String? _selectedWallet;
   bool isRepeat = false;
-  bool _isLoading = true;
+  bool _isSubmitting = false; // Added loading state for submission
 
   final List<String> _categories = [
     'Food',
-    'Grocery', // Fixed case
+    'Grocery',
     'Rent',
     'Taxi',
     '1 to 10',
@@ -47,6 +45,68 @@ class _ExpensePageState extends State<ExpensePage> {
     _expenseController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitExpense(double amount) async {
+    if (_isSubmitting) return; // Prevent multiple submissions
+
+    // Validate required fields
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedWallet == null || _selectedWallet!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a wallet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await Provider.of<BalanceProvider>(context, listen: false).addExpense(
+        amount,
+        _selectedCategory!,
+        _descriptionController.text.trim(),
+        _selectedWallet!,
+        _capturedImagePath,
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Expense added successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate back to home page
+      Navigator.pop(context);
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding expense: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   @override
@@ -103,37 +163,7 @@ class _ExpensePageState extends State<ExpensePage> {
                 imagePath: _capturedImagePath,
                 onCaptureImage: _handleCaptureImage,
                 onSubmit: (amount) async {
-                  try {
-                    await Provider.of<BalanceProvider>(
-                      context,
-                      listen: false,
-                    ).addExpense(
-                      amount,
-                      _selectedCategory ?? 'Other',
-                      _descriptionController.text.trim(),
-                      _selectedWallet ?? 'Cash',
-                      _capturedImagePath,
-                    );
-
-                    // Navigate back to home page
-                    Navigator.of(context);
-
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Expense added successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } catch (e) {
-                    // Show error message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding expense: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  await _submitExpense(amount);
                 },
                 selectedCategory: _selectedCategory,
                 selectedWallet: _selectedWallet,
@@ -151,6 +181,7 @@ class _ExpensePageState extends State<ExpensePage> {
                 },
                 amountController: _expenseController,
                 descriptionController: _descriptionController,
+                isLoading: _isSubmitting, // Pass loading state to form
               ),
             ),
           ),

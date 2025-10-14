@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:expense_track/widgets/CustomDropdown.dart';
 import 'package:expense_track/widgets/RepeatToggle.dart';
-// Fixed case
 import 'package:flutter/material.dart';
 
 class TransactionForm extends StatelessWidget {
@@ -19,6 +18,7 @@ class TransactionForm extends StatelessWidget {
   final TextEditingController descriptionController;
   final String? imagePath;
   final VoidCallback onCaptureImage;
+  final bool isLoading; // ADD THIS
 
   const TransactionForm({
     super.key,
@@ -36,6 +36,7 @@ class TransactionForm extends StatelessWidget {
     required this.descriptionController,
     required this.imagePath,
     required this.onCaptureImage,
+    this.isLoading = false, // ADD THIS with default value
   });
 
   @override
@@ -108,12 +109,19 @@ class TransactionForm extends StatelessWidget {
 
             // Image Attachment
             TextButton.icon(
-              onPressed: onCaptureImage,
+              onPressed: isLoading
+                  ? null
+                  : onCaptureImage, // Disable when loading
               label: Text(
                 'Add attachment',
-                style: TextStyle(color: Colors.blueGrey),
+                style: TextStyle(
+                  color: isLoading ? Colors.grey : Colors.blueGrey,
+                ),
               ),
-              icon: Icon(Icons.attach_file_rounded, color: Colors.blueGrey),
+              icon: Icon(
+                Icons.attach_file_rounded,
+                color: isLoading ? Colors.grey : Colors.blueGrey,
+              ),
             ),
 
             // Display selected image
@@ -174,46 +182,50 @@ class TransactionForm extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Submit Button
+            // Submit Button - UPDATED with loading state
             ElevatedButton(
-              onPressed: () {
-                final amountText = amountController.text.trim();
-                final amount = double.tryParse(amountText);
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      // Disable when loading
+                      final amountText = amountController.text.trim();
+                      final amount = double.tryParse(amountText);
 
-                // Validation
-                if (amount == null || amount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a valid amount'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
+                      // Validation
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter a valid amount'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
 
-                if (selectedCategory == null || selectedCategory!.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select a category'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
+                      if (selectedCategory == null ||
+                          selectedCategory!.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a category'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
 
-                if (selectedWallet == null || selectedWallet!.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select a wallet'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
+                      if (selectedWallet == null || selectedWallet!.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a wallet'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
 
-                // All validations passed, submit the form
-                onSubmit(amount);
-              },
+                      // All validations passed, submit the form
+                      onSubmit(amount);
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
                 foregroundColor: Colors.white,
@@ -226,7 +238,16 @@ class TransactionForm extends StatelessWidget {
                   vertical: 14,
                 ),
               ),
-              child: const Text('Continue'),
+              child: isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Continue'),
             ),
           ],
         ),

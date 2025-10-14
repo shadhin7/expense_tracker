@@ -1,4 +1,4 @@
-import 'package:expense_track/Provider/balance_provider.dart'; // Updated import
+import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 
 class EditTransactionPage extends StatefulWidget {
   final TransactionModel transaction;
-  final String transactionId; // Changed from int to String for Firestore ID
+  final String transactionId;
 
   const EditTransactionPage({
     super.key,
@@ -26,6 +26,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   String? selectedWallet;
   String? imagePath;
   bool isRepeat = false;
+  bool _isSubmitting = false; // Added loading state
 
   final List<String> wallets = ['Cash', 'Card', 'Bank', 'Credit Card'];
   final List<String> categories = [
@@ -52,11 +53,11 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
 
     selectedWallet = wallets.contains(widget.transaction.wallet)
         ? widget.transaction.wallet
-        : null;
+        : wallets.first; // Default to first if not found
 
     selectedCategory = categories.contains(widget.transaction.category)
         ? widget.transaction.category
-        : null;
+        : categories.first; // Default to first if not found
 
     imagePath = widget.transaction.imagePath;
   }
@@ -80,52 +81,68 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   }
 
   Future<void> _submitForm() async {
+    if (_isSubmitting) return; // Prevent multiple submissions
+
     final amount = double.tryParse(amountController.text) ?? 0;
 
+    // Validation
     if (amount <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please enter a valid amount')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter a valid amount'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
     if (selectedCategory == null || selectedCategory!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please select a category')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
     if (selectedWallet == null || selectedWallet!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please select a wallet')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a wallet'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
+
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
       await Provider.of<BalanceProvider>(
         context,
         listen: false,
       ).editTransaction(
-        widget.transactionId, // Updated to use String ID
+        widget.transactionId,
         amount,
         selectedCategory!,
-        descriptionController.text,
+        descriptionController.text.trim(),
         selectedWallet!,
         imagePath,
       );
 
-      Navigator.pop(context, true);
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Transaction updated successfully',
-            style: TextStyle(color: Colors.black),
-          ),
-          backgroundColor: Colors.white,
+          content: Text('Transaction updated successfully'),
+          backgroundColor: Colors.green,
         ),
       );
+
+      // Navigate back
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -133,12 +150,16 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = widget.transaction.isIncome; // Using the getter
+    final isIncome = widget.transaction.isIncome;
 
     return Scaffold(
       backgroundColor: isIncome ? Colors.green : Colors.red,
@@ -147,6 +168,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         centerTitle: true,
         backgroundColor: isIncome ? Colors.green : Colors.red,
         foregroundColor: Colors.white,
+        leading: BackButton(color: Colors.white),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,8 +222,8 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                 onRepeatChanged: (val) => setState(() => isRepeat = val),
                 imagePath: imagePath,
                 onCaptureImage: _pickImage,
-                onSubmit: (_) =>
-                    _submitForm(), // Updated to use validation method
+                onSubmit: (_) => _submitForm(),
+                isLoading: _isSubmitting, // Pass loading state to form
               ),
             ),
           ),
