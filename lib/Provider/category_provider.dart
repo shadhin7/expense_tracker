@@ -1,60 +1,61 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:expense_track/services/category_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class CategoryProvider with ChangeNotifier {
-  List<String> _categories = [];
-  final _firestore = FirebaseFirestore.instance;
+  final CategoryService _service = CategoryService();
+  List<String> _expenseCategories = [];
+  List<String> _incomeCategories = [];
 
-  List<String> get categories => _categories;
+  List<String> get expenseCategories => _expenseCategories;
+  List<String> get incomeCategories => _incomeCategories;
 
-  /// Get current user ID
-  String get uid => FirebaseAuth.instance.currentUser!.uid;
-
-  /// Load categories for this user
-  Future<void> loadCategories() async {
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('categories')
-        .get();
-
-    _categories = snapshot.docs.map((doc) => doc['name'] as String).toList();
+  Future<void> loadUserCategories(String type) async {
+    final categories = await _service.getUserCategories(type);
+    if (type == 'expense') {
+      _expenseCategories = categories;
+    } else {
+      _incomeCategories = categories;
+    }
     notifyListeners();
   }
 
-  /// Add new category for this user
-  Future<void> addCategory(String category) async {
-    if (!_categories.contains(category)) {
-      await _firestore
-          .collection('users')
-          .doc(uid)
-          .collection('categories')
-          .add({'name': category});
-      _categories.add(category);
-      notifyListeners();
+  Future<void> addUserCategory(String name, String type) async {
+    await _service.addUserCategory(name, type);
+    if (type == 'expense') {
+      _expenseCategories.add(name);
+    } else {
+      _incomeCategories.add(name);
     }
+    notifyListeners();
   }
 
-  /// Delete category for this user
-  Future<void> deleteCategory(String category) async {
-    final snapshot = await _firestore
+  Future<void> deleteUserCategory(String name, String type) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final collection = FirebaseFirestore.instance
         .collection('users')
-        .doc(uid)
-        .collection('categories')
-        .where('name', isEqualTo: category)
+        .doc(userId)
+        .collection('categories');
+
+    final snapshot = await collection
+        .where('name', isEqualTo: name)
+        .where('type', isEqualTo: type)
         .get();
 
     for (var doc in snapshot.docs) {
-      await _firestore
-          .collection('users')
-          .doc(uid)
-          .collection('categories')
-          .doc(doc.id)
-          .delete();
+      await doc.reference.delete();
     }
 
-    _categories.remove(category);
+    // Update local state
+    if (type == 'expense') {
+      _expenseCategories.remove(name);
+    } else {
+      _incomeCategories.remove(name);
+    }
+
     notifyListeners();
   }
 }

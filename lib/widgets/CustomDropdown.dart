@@ -17,22 +17,24 @@ class CustomDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: Colors.black),
         filled: true,
         fillColor: Colors.white,
         contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black12, width: 2),
+          borderSide: BorderSide(color: Colors.black),
         ),
       ),
       initialValue: value,

@@ -1,4 +1,7 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/Provider/category_provider.dart';
 import 'package:expense_track/Provider/image_capture.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +19,40 @@ class _ExpensePageState extends State<ExpensePage> {
   final TextEditingController _descriptionController = TextEditingController();
   String? _capturedImagePath;
 
+  String? _selectedCategory;
+  String? _selectedWallet;
+  bool isRepeat = false;
+  bool _isSubmitting = false;
+
+  final List<String> _defaultCategories = [
+    'Food',
+    'Grocery',
+    'Rent',
+    'Taxi',
+    '1 to 10',
+    'Transfer',
+  ];
+
+  final List<String> _wallets = ['Cash', 'Bank', 'Card', 'Credit Card'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CategoryProvider>(
+        context,
+        listen: false,
+      ).loadUserCategories('expense');
+    });
+  }
+
+  @override
+  void dispose() {
+    _expenseController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
   void _handleCaptureImage() async {
     final path = await captureImageFromCamera();
     if (path != null) {
@@ -25,35 +62,12 @@ class _ExpensePageState extends State<ExpensePage> {
     }
   }
 
-  String? _selectedCategory;
-  String? _selectedWallet;
-  bool isRepeat = false;
-  bool _isSubmitting = false; // Added loading state for submission
-
-  final List<String> _categories = [
-    'Food',
-    'Grocery',
-    'Rent',
-    'Taxi',
-    '1 to 10',
-    'Transfer',
-  ];
-  final List<String> _wallets = ['Cash', 'Bank', 'Card', 'Credit Card'];
-
-  @override
-  void dispose() {
-    _expenseController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
   Future<void> _submitExpense(double amount) async {
-    if (_isSubmitting) return; // Prevent multiple submissions
+    if (_isSubmitting) return;
 
-    // Validate required fields
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please select a category'),
           backgroundColor: Colors.red,
         ),
@@ -63,7 +77,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
     if (_selectedWallet == null || _selectedWallet!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please select a wallet'),
           backgroundColor: Colors.red,
         ),
@@ -84,18 +98,15 @@ class _ExpensePageState extends State<ExpensePage> {
         _capturedImagePath,
       );
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Expense added successfully!'),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Navigate back to home page
       Navigator.pop(context);
     } catch (e) {
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error adding expense: $e'),
@@ -111,6 +122,15 @@ class _ExpensePageState extends State<ExpensePage> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+
+    // Combine default + user categories + Add Category button
+    final allCategories = [
+      ..._defaultCategories,
+      ...categoryProvider.expenseCategories,
+      '+ Add Category',
+    ];
+
     return Scaffold(
       backgroundColor: Colors.red,
       appBar: AppBar(
@@ -118,7 +138,7 @@ class _ExpensePageState extends State<ExpensePage> {
         backgroundColor: Colors.red,
         title: const Text('Expense'),
         centerTitle: true,
-        leading: BackButton(color: Colors.white),
+        leading: const BackButton(color: Colors.white),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +153,9 @@ class _ExpensePageState extends State<ExpensePage> {
             child: TextFormField(
               controller: _expenseController,
               cursorColor: Colors.white,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
@@ -146,7 +168,6 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
           Expanded(
             child: Container(
@@ -162,26 +183,70 @@ class _ExpensePageState extends State<ExpensePage> {
                 buttonColor: Colors.red,
                 imagePath: _capturedImagePath,
                 onCaptureImage: _handleCaptureImage,
-                onSubmit: (amount) async {
-                  await _submitExpense(amount);
-                },
+                onSubmit: (amount) async => await _submitExpense(amount),
                 selectedCategory: _selectedCategory,
                 selectedWallet: _selectedWallet,
                 isRepeat: isRepeat,
-                categories: _categories,
+                categories: allCategories,
                 wallets: _wallets,
-                onCategoryChanged: (value) {
-                  setState(() => _selectedCategory = value);
+                onCategoryChanged: (value) async {
+                  if (value == '+ Add Category') {
+                    final newCategory = await showDialog<String>(
+                      context: context,
+                      builder: (context) {
+                        final controller = TextEditingController();
+                        return AlertDialog(
+                          title: const Text('Add Expense Category'),
+                          content: TextField(
+                            controller: controller,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter new category name',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(
+                                context,
+                                controller.text.trim(),
+                              ),
+                              child: const Text('Add'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (newCategory != null && newCategory.isNotEmpty) {
+                      await Provider.of<CategoryProvider>(
+                        context,
+                        listen: false,
+                      ).addUserCategory(newCategory, 'expense');
+
+                      setState(() {
+                        _selectedCategory = newCategory;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Category "$newCategory" added!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    setState(() => _selectedCategory = value);
+                  }
                 },
-                onWalletChanged: (value) {
-                  setState(() => _selectedWallet = value);
-                },
-                onRepeatChanged: (value) {
-                  setState(() => isRepeat = value);
-                },
+                onWalletChanged: (value) =>
+                    setState(() => _selectedWallet = value),
+                onRepeatChanged: (value) => setState(() => isRepeat = value),
                 amountController: _expenseController,
                 descriptionController: _descriptionController,
-                isLoading: _isSubmitting, // Pass loading state to form
+                isLoading: _isSubmitting,
               ),
             ),
           ),

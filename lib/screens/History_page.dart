@@ -39,6 +39,7 @@ class _HistoryState extends State<History> {
     final provider = Provider.of<BalanceProvider>(context);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         actions: [
           IconButton(
@@ -62,6 +63,7 @@ class _HistoryState extends State<History> {
 
           // Monthly Summary
           Card(
+            color: Colors.white,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -186,118 +188,124 @@ class _HistoryState extends State<History> {
                   );
                 }
 
-                return ListView.builder(
-                  itemCount: transactions.length,
-                  itemBuilder: (context, index) {
-                    final tx = transactions[index];
-                    final isIncome = tx.isIncome;
-                    final imagePath = getCategoryImage(tx.category, tx.type);
+                return Card(
+                  color: Colors.white,
+                  child: ListView.builder(
+                    itemCount: transactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = transactions[index];
+                      final isIncome = tx.isIncome;
+                      final imagePath = getCategoryImage(tx.category, tx.type);
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8,
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TransactionDetailPage(
-                                transaction: tx,
-                                transactionId:
-                                    tx.id!, // Use transaction's own ID
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8,
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => TransactionDetailPage(
+                                  transaction: tx,
+                                  transactionId:
+                                      tx.id!, // Use transaction's own ID
+                                ),
                               ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              // Icon
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isIncome
-                                      ? Colors.green.shade100
-                                      : Colors.red.shade100,
-                                  borderRadius: BorderRadius.circular(12),
+                            child: Row(
+                              children: [
+                                // Icon
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isIncome
+                                        ? Colors.green.shade100
+                                        : Colors.red.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Image.asset(
+                                    imagePath,
+                                    width: 30,
+                                    height: 30,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-                                child: Image.asset(
-                                  imagePath,
-                                  width: 30,
-                                  height: 30,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
+                                const SizedBox(width: 12),
 
-                              // Info
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                // Info
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        tx.category,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        tx.description.isEmpty
+                                            ? 'No description'
+                                            : tx.description,
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Amount + Time
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      tx.category,
-                                      style: const TextStyle(
+                                      "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                                        color: isIncome
+                                            ? Colors.green
+                                            : Colors.red,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      tx.description.isEmpty
-                                          ? 'No description'
-                                          : tx.description,
-                                      style: TextStyle(color: Colors.grey[600]),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
+                                      DateFormat('dd/MM/yyyy').format(tx.date),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      DateFormat('hh:mm a').format(tx.date),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-
-                              // Amount + Time
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isIncome
-                                          ? Colors.green
-                                          : Colors.red,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    DateFormat('dd/MM/yyyy').format(tx.date),
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  Text(
-                                    DateFormat('hh:mm a').format(tx.date),
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 );
               },
             ),

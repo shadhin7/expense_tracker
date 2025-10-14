@@ -85,13 +85,6 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Sign Up'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -99,13 +92,14 @@ class _SignUpPageState extends State<SignUpPage> {
             key: _formKey,
             child: Column(
               children: [
+                SizedBox(height: 50),
                 // Title
                 Text(
                   'Create Account',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
+                    color: Colors.blue,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -120,8 +114,12 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.blue),
+                    ),
                     labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: Icon(Icons.email, color: Colors.blue),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -145,8 +143,12 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.blue),
+                    ),
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: Icon(Icons.lock, color: Colors.blue),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -180,8 +182,12 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.blue),
+                    ),
                     labelText: 'Confirm Password',
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: Icon(Icons.lock, color: Colors.blue),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
@@ -217,7 +223,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _signUp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.blue,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

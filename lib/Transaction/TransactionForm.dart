@@ -41,9 +41,9 @@ class TransactionForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(21),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -52,6 +52,7 @@ class TransactionForm extends StatelessWidget {
               controller: descriptionController,
               decoration: InputDecoration(
                 labelText: 'Description',
+                labelStyle: TextStyle(color: Colors.black),
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(
@@ -60,15 +61,15 @@ class TransactionForm extends StatelessWidget {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.black12, width: 2),
+                  borderSide: BorderSide(color: Colors.black),
                 ),
               ),
             ),
