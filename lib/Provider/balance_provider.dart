@@ -1,4 +1,4 @@
-// balance_provider.dart - UPDATED WITH CLOUDINARY
+// balance_provider.dart - UPDATED WITH CLOUDINARY ONLY
 import 'package:expense_track/models/tansaction_entry.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
 
 import '../services/firestore_service.dart';
-import '../services/cloudinary_service.dart'; // ADD THIS
+import '../services/cloudinary_service.dart';
 
 class BalanceProvider with ChangeNotifier {
   double _balance = 0;
@@ -15,16 +15,16 @@ class BalanceProvider with ChangeNotifier {
   double _totalExpense = 0;
   List<TransactionEntry> _transactions = [];
   String? _currentUserId;
-  bool _isUploadingImage = false; // ADD THIS
+  bool _isUploadingImage = false;
 
   final FirestoreService _firestoreService = FirestoreService();
-  final CloudinaryService _cloudinaryService = CloudinaryService(); // ADD THIS
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   double get balance => _balance;
   double get totalIncome => _totalIncome;
   double get totalExpense => _totalExpense;
   List<TransactionEntry> get transactions => _transactions;
-  bool get isUploadingImage => _isUploadingImage; // ADD THIS
+  bool get isUploadingImage => _isUploadingImage;
 
   String get formattedBalance => formatAmount(_balance);
   String get formattedTotalIncome => formatAmount(_totalIncome);
@@ -53,7 +53,7 @@ class BalanceProvider with ChangeNotifier {
     _totalIncome = 0;
     _totalExpense = 0;
     _transactions = [];
-    _isUploadingImage = false; // ADD THIS
+    _isUploadingImage = false;
     notifyListeners();
   }
 
@@ -61,8 +61,7 @@ class BalanceProvider with ChangeNotifier {
     return DateFormat('yyyy-MM').format(date);
   }
 
-  // ADD THESE NEW IMAGE UPLOAD METHODS
-  // Option 1: Take photo with camera and upload to Cloudinary
+  // UPDATED: Take photo with camera and upload to Cloudinary (ONLY CLOUD)
   Future<String?> takePhotoAndUpload() async {
     if (_currentUserId == null) return null;
 
@@ -84,7 +83,7 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // Option 2: Pick from gallery and upload to Cloudinary
+  // UPDATED: Pick from gallery and upload to Cloudinary (ONLY CLOUD)
   Future<String?> pickFromGalleryAndUpload() async {
     if (_currentUserId == null) return null;
 
@@ -106,24 +105,15 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // Option 3: Just get local image path (no upload)
-  Future<String?> getLocalImagePath() async {
-    try {
-      return await _cloudinaryService.pickImageLocalOnly();
-    } catch (e) {
-      print('Error getting local image: $e');
-      return null;
-    }
-  }
+  // REMOVED: getLocalImagePath() - No local storage
 
-  // UPDATED: Add Income with Cloudinary support
+  // UPDATED: Add Income with Cloudinary support only
   Future<void> addIncome(
     double amount,
     String category,
     String description,
     String wallet,
-    String? cloudinaryImageUrl, // CHANGED: Cloudinary URL instead of local path
-    String? localImagePath, // ADDED: Optional local backup
+    String? cloudinaryImageUrl, // ONLY Cloudinary URL, no local path
   ) async {
     if (_currentUserId == null) return;
 
@@ -135,9 +125,8 @@ class BalanceProvider with ChangeNotifier {
       category: category,
       description: description,
       wallet: wallet,
-      localImagePath: localImagePath, // Local path as backup
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // ADD THIS: Cloudinary URL
+      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
@@ -150,14 +139,13 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // UPDATED: Add Expense with Cloudinary support
+  // UPDATED: Add Expense with Cloudinary support only
   Future<void> addExpense(
     double amount,
     String category,
     String description,
     String wallet,
-    String? cloudinaryImageUrl, // CHANGED: Cloudinary URL instead of local path
-    String? localImagePath, // ADDED: Optional local backup
+    String? cloudinaryImageUrl, // ONLY Cloudinary URL, no local path
   ) async {
     if (_currentUserId == null) return;
 
@@ -169,9 +157,9 @@ class BalanceProvider with ChangeNotifier {
       category: category,
       description: description,
       wallet: wallet,
-      localImagePath: localImagePath, // Local path as backup
+
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // ADD THIS: Cloudinary URL
+      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
@@ -184,15 +172,14 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // UPDATED: Edit Transaction with Cloudinary support
+  // UPDATED: Edit Transaction with Cloudinary support only
   Future<void> editTransaction(
     String transactionId,
     double newAmount,
     String newCategory,
     String newDescription,
     String newWallet,
-    String? cloudinaryImageUrl, // CHANGED: Cloudinary URL
-    String? localImagePath, // ADDED: Local backup
+    String? cloudinaryImageUrl, // ONLY Cloudinary URL
   ) async {
     if (_currentUserId == null) return;
 
@@ -226,9 +213,9 @@ class BalanceProvider with ChangeNotifier {
       category: newCategory,
       description: newDescription,
       wallet: newWallet,
-      localImagePath: localImagePath, // Local path as backup
+
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // ADD THIS: Cloudinary URL
+      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
     );
 
     await _firestoreService.updateTransaction(updated, _currentUserId!);

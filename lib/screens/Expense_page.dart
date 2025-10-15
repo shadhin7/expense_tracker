@@ -16,8 +16,7 @@ class ExpensePage extends StatefulWidget {
 class _ExpensePageState extends State<ExpensePage> {
   final TextEditingController _expenseController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String? _capturedImagePath;
-  String? _cloudinaryImageUrl; // ADD THIS: Cloudinary URL
+  String? _cloudinaryImageUrl; // ONLY Cloudinary URL
 
   String? _selectedCategory;
   String? _selectedWallet;
@@ -53,32 +52,28 @@ class _ExpensePageState extends State<ExpensePage> {
     super.dispose();
   }
 
-  // UPDATED: Image capture methods with Cloudinary options
+  // UPDATED: Image capture methods - ONLY CLOUD OPTIONS
   void _handleCaptureImage() async {
     final balanceProvider = Provider.of<BalanceProvider>(
       context,
       listen: false,
     );
 
-    // Show options dialog
+    // Show simplified options dialog - ONLY CLOUD
     final option = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Add Receipt'),
-        content: Text('Choose how to add receipt image:'),
+        content: Text('Upload receipt to cloud:'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
-            child: Text('Camera'),
+            child: Text('📷 Take Photo'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
-            child: Text('Gallery'),
+            child: Text('🖼️ Choose from Gallery'),
           ),
-          // TextButton(
-          //   onPressed: () => Navigator.pop(context, 3), // Local only
-          //   child: Text('📱 Local Only'),
-          // ),
           TextButton(
             onPressed: () => Navigator.pop(context, 0), // Cancel
             child: Text('Cancel'),
@@ -91,7 +86,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
     try {
       String? imageUrl;
-      String? localPath;
 
       switch (option) {
         case 1: // Camera + Cloudinary
@@ -100,24 +94,16 @@ class _ExpensePageState extends State<ExpensePage> {
         case 2: // Gallery + Cloudinary
           imageUrl = await balanceProvider.pickFromGalleryAndUpload();
           break;
-        case 3: // Local only
-          localPath = await balanceProvider.getLocalImagePath();
-          break;
       }
 
-      if (imageUrl != null || localPath != null) {
+      if (imageUrl != null) {
         setState(() {
           _cloudinaryImageUrl = imageUrl; // Store Cloudinary URL
-          _capturedImagePath = localPath; // Store local path
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              imageUrl != null
-                  ? '✅ Receipt uploaded to cloud!'
-                  : '📱 Receipt saved locally',
-            ),
+            content: Text('✅ Receipt uploaded to cloud!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -125,7 +111,7 @@ class _ExpensePageState extends State<ExpensePage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Error: ${e.toString()}'),
+          content: Text('❌ Upload failed: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -136,11 +122,10 @@ class _ExpensePageState extends State<ExpensePage> {
   void _removeImage() {
     setState(() {
       _cloudinaryImageUrl = null;
-      _capturedImagePath = null;
     });
   }
 
-  // UPDATED: Submit expense with Cloudinary support
+  // UPDATED: Submit expense with Cloudinary support ONLY
   Future<void> _submitExpense(double amount) async {
     if (_isSubmitting) return;
 
@@ -169,14 +154,13 @@ class _ExpensePageState extends State<ExpensePage> {
     });
 
     try {
-      // UPDATED: Use both Cloudinary URL and local path
+      // UPDATED: Only Cloudinary URL, no local path
       await Provider.of<BalanceProvider>(context, listen: false).addExpense(
         amount,
         _selectedCategory!,
         _descriptionController.text.trim(),
         _selectedWallet!,
-        _cloudinaryImageUrl, // Cloudinary URL (priority)
-        _capturedImagePath, // Local path (backup)
+        _cloudinaryImageUrl, // ONLY Cloudinary URL
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,7 +188,7 @@ class _ExpensePageState extends State<ExpensePage> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final balanceProvider = Provider.of<BalanceProvider>(context); // ADD THIS
+    final balanceProvider = Provider.of<BalanceProvider>(context);
 
     // Combine default + user categories + Add Category button
     final allCategories = [
@@ -225,6 +209,7 @@ class _ExpensePageState extends State<ExpensePage> {
         return Scaffold(
           backgroundColor: Colors.red,
           appBar: AppBar(
+            scrolledUnderElevation: 0,
             foregroundColor: Colors.white,
             backgroundColor: Colors.red,
             title: Text(
@@ -294,10 +279,9 @@ class _ExpensePageState extends State<ExpensePage> {
                           child: TransactionForm(
                             buttonColor: Colors.red,
                             imagePath:
-                                _cloudinaryImageUrl ??
-                                _capturedImagePath, // UPDATED: Show Cloudinary URL first
+                                _cloudinaryImageUrl, // ONLY Cloudinary URL
                             onCaptureImage: _handleCaptureImage,
-                            onRemoveImage: _removeImage, // ADD THIS
+                            onRemoveImage: _removeImage,
                             onSubmit: (amount) async =>
                                 await _submitExpense(amount),
                             selectedCategory: _selectedCategory,
@@ -368,7 +352,6 @@ class _ExpensePageState extends State<ExpensePage> {
                             amountController: _expenseController,
                             descriptionController: _descriptionController,
                             isLoading: _isSubmitting,
-                            // ADD THIS: Show upload progress
                             showImageUploadProgress:
                                 balanceProvider.isUploadingImage,
                           ),
@@ -378,7 +361,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   ),
                 ),
               ),
-              // ADD THIS: Show upload progress overlay
+              // Upload progress overlay
               if (balanceProvider.isUploadingImage)
                 Container(
                   color: Colors.black54,
@@ -391,7 +374,7 @@ class _ExpensePageState extends State<ExpensePage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading receipt ...',
+                          'Uploading to cloud...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

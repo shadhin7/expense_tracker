@@ -57,6 +57,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         centerTitle: true,
         title: const Text('Manage Categories'),
         bottom: TabBar(

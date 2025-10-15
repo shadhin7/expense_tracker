@@ -86,6 +86,7 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         title: Text('Sign Up'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),

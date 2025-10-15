@@ -10,8 +10,7 @@ class TransactionModel {
   final String description;
   final String wallet;
   final String monthYear;
-  final String? receiptImageUrl; // CLOUDINARY URL (Priority 1)
-  final String? localImagePath; // LOCAL PATH (Backup - only if no cloud image)
+  final String? receiptImageUrl; // ONLY CLOUDINARY URL
 
   TransactionModel({
     required this.id,
@@ -22,21 +21,19 @@ class TransactionModel {
     required this.category,
     required this.description,
     required this.wallet,
-    this.receiptImageUrl,
-    this.localImagePath,
+    this.receiptImageUrl, // ONLY Cloudinary URL
   }) : monthYear = '${date.year}-${date.month.toString().padLeft(2, '0')}';
 
   bool get isIncome => type.toLowerCase() == 'income';
 
-  // Get display image - CLOUDINARY HAS PRIORITY
-  String? get displayImage {
-    if (receiptImageUrl != null && receiptImageUrl!.isNotEmpty) {
-      return receiptImageUrl; // Use Cloudinary URL first
-    }
-    return localImagePath; // Fallback to local path
-  }
+  // ADD THIS: Expense checker
+  bool get isExpense => type.toLowerCase() == 'expense';
 
-  bool get hasImage => receiptImageUrl != null || localImagePath != null;
+  // UPDATED: Only Cloudinary URL, no local fallback
+  String? get displayImage => receiptImageUrl;
+
+  // UPDATED: Check only Cloudinary URL
+  bool get hasImage => receiptImageUrl != null && receiptImageUrl!.isNotEmpty;
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -51,8 +48,9 @@ class TransactionModel {
       'wallet': wallet,
       'monthYear': monthYear,
       'isIncome': isIncome,
-      'receiptImageUrl': receiptImageUrl, // Store Cloudinary URL
-      'localImagePath': localImagePath, // Store local path as backup
+      'isExpense': isExpense, // ADD THIS
+      'receiptImageUrl': receiptImageUrl, // ONLY Cloudinary URL
+      // REMOVED: localImagePath
       'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -71,8 +69,8 @@ class TransactionModel {
       category: map['category'] ?? '',
       description: map['description'] ?? '',
       wallet: map['wallet'] ?? '',
-      receiptImageUrl: map['receiptImageUrl'],
-      localImagePath: map['localImagePath'],
+      receiptImageUrl: map['receiptImageUrl'], // ONLY Cloudinary URL
+      // REMOVED: localImagePath
     );
   }
 
@@ -96,7 +94,7 @@ class TransactionModel {
     String? description,
     String? wallet,
     String? receiptImageUrl,
-    String? localImagePath,
+    // REMOVED: localImagePath
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -108,12 +106,12 @@ class TransactionModel {
       description: description ?? this.description,
       wallet: wallet ?? this.wallet,
       receiptImageUrl: receiptImageUrl ?? this.receiptImageUrl,
-      localImagePath: localImagePath ?? this.localImagePath,
+      // REMOVED: localImagePath
     );
   }
 
   @override
   String toString() {
-    return 'TransactionModel(id: $id, amount: $amount, type: $type, cloudImage: $receiptImageUrl, localImage: $localImagePath)';
+    return 'TransactionModel(id: $id, amount: $amount, type: $type, cloudImage: $receiptImageUrl)';
   }
 }

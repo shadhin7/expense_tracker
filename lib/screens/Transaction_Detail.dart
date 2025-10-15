@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:io';
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/screens/edit_page.dart';
 import 'package:expense_track/screens/image_page.dart';
@@ -9,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // ADD THIS
+import 'package:cached_network_image/cached_network_image.dart';
 
 class TransactionDetailPage extends StatelessWidget {
   final TransactionModel transaction;
@@ -27,6 +26,7 @@ class TransactionDetailPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         centerTitle: true,
         backgroundColor: isIncome ? Colors.green : Colors.red,
         title: Text(
@@ -226,8 +226,8 @@ class TransactionDetailPage extends StatelessWidget {
                       ),
                     ),
 
-                    // UPDATED: Image Section with Cloudinary support
-                    if (transaction.hasImage) ...[
+                    // UPDATED: Image Section - ONLY CLOUDINARY
+                    if (transaction.receiptImageUrl != null) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
@@ -245,42 +245,11 @@ class TransactionDetailPage extends StatelessWidget {
                                       color: Colors.grey[700],
                                     ),
                                   ),
-                                  SizedBox(width: 8),
-                                  // ADD THIS: Cloudinary badge
-                                  // if (transaction.receiptImageUrl != null)
-                                  //   Container(
-                                  //     padding: EdgeInsets.symmetric(
-                                  //       horizontal: 6,
-                                  //       vertical: 2,
-                                  //     ),
-                                  //     decoration: BoxDecoration(
-                                  //       color: Colors.green,
-                                  //       borderRadius: BorderRadius.circular(6),
-                                  //     ),
-                                  //     child: Row(
-                                  //       mainAxisSize: MainAxisSize.min,
-                                  //       children: [
-                                  //         Icon(
-                                  //           Icons.cloud,
-                                  //           color: Colors.white,
-                                  //           size: 12,
-                                  //         ),
-                                  //         SizedBox(width: 4),
-                                  //         Text(
-                                  //           'Cloud',
-                                  //           style: TextStyle(
-                                  //             color: Colors.white,
-                                  //             fontSize: 10,
-                                  //             fontWeight: FontWeight.bold,
-                                  //           ),
-                                  //         ),
-                                  //       ],
-                                  //     ),
-                                  //   ),
+                                  const SizedBox(width: 8),
                                 ],
                               ),
                             ),
-                            _buildImagePreview(imageHeight, context),
+                            _buildCloudinaryImagePreview(imageHeight, context),
                           ],
                         ),
                       ),
@@ -340,21 +309,21 @@ class TransactionDetailPage extends StatelessWidget {
     );
   }
 
-  // ADD THIS: Build image preview for both Cloudinary and local images
-  // REPLACE the _buildImagePreview method with this:
-  Widget _buildImagePreview(double imageHeight, BuildContext context) {
-    // ADD context parameter
-    // Use displayImage getter which prioritizes Cloudinary URL
-    final displayImage = transaction.displayImage;
+  // UPDATED: Build image preview for Cloudinary images only
+  Widget _buildCloudinaryImagePreview(
+    double imageHeight,
+    BuildContext context,
+  ) {
+    final cloudinaryUrl = transaction.receiptImageUrl;
 
-    if (displayImage == null) {
+    if (cloudinaryUrl == null) {
       return Container(
         height: imageHeight,
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Center(
+        child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -367,143 +336,51 @@ class TransactionDetailPage extends StatelessWidget {
       );
     }
 
-    // Check if it's a network image (Cloudinary)
-    final isNetworkImage = displayImage.startsWith('http');
-
-    if (isNetworkImage) {
-      // Cloudinary image
-      return GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FullScreenImageViewer(
-              imagePath: displayImage,
-              isNetworkImage: true,
-            ),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FullScreenImageViewer(
+            imagePath: cloudinaryUrl,
+            isNetworkImage: true,
           ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            children: [
-              CachedNetworkImage(
-                imageUrl: displayImage,
-                height: imageHeight,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: imageHeight,
-                  color: Colors.grey[200],
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: imageHeight,
-                  color: Colors.grey[300],
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 40, color: Colors.grey),
-                      SizedBox(height: 8),
-                      Text('Failed to load image'),
-                    ],
-                  ),
-                ),
-              ),
-              // Cloudinary badge overlay
-              // Positioned(
-              //   top: 8,
-              //   right: 8,
-              //   child: Container(
-              //     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              //     decoration: BoxDecoration(
-              //       color: Colors.black54,
-              //       borderRadius: BorderRadius.circular(8),
-              //     ),
-              //     child: Row(
-              //       mainAxisSize: MainAxisSize.min,
-              //       children: [
-              //         Icon(Icons.cloud_upload, color: Colors.white, size: 12),
-              //         SizedBox(width: 4),
-              //         Text(
-              //           'Cloud',
-              //           style: TextStyle(
-              //             color: Colors.white,
-              //             fontSize: 10,
-              //             fontWeight: FontWeight.bold,
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-              // ),
-            ],
-          ),
-        ),
-      );
-    } else {
-      // Local image
-      return FutureBuilder<bool>(
-        future: _checkImageExists(displayImage),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            CachedNetworkImage(
+              imageUrl: cloudinaryUrl,
               height: imageHeight,
-              color: Colors.grey[200],
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          if (snapshot.hasData && snapshot.data == true) {
-            return GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FullScreenImageViewer(
-                    imagePath: displayImage,
-                    isNetworkImage: false,
-                  ),
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                height: imageHeight,
+                color: Colors.grey[200],
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.blue),
                 ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(displayImage),
-                  height: imageHeight,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              errorWidget: (context, url, error) => Container(
+                height: imageHeight,
+                color: Colors.grey[300],
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text('Failed to load image'),
+                  ],
                 ),
               ),
-            );
-          }
-
-          return Container(
-            height: imageHeight,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.photo, size: 40, color: Colors.grey),
-                SizedBox(height: 8),
-                Text('Image not found'),
-              ],
-            ),
-          );
-        },
-      );
-    }
-  }
 
-  // Helper method to check if image file exists
-  Future<bool> _checkImageExists(String imagePath) async {
-    try {
-      final file = File(imagePath);
-      return await file.exists();
-    } catch (e) {
-      return false;
-    }
+            // Cloudinary badge overlay
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildInfoColumn(String title, String value) {

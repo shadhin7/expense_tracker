@@ -13,7 +13,6 @@ class SpendChart extends StatefulWidget {
 
 class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
   late TabController _tabController;
-  final List<FlSpot> _graphData = [];
 
   @override
   void initState() {

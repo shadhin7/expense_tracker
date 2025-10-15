@@ -7,8 +7,7 @@ class CloudinaryService {
   static const String _cloudName = 'defb6qmew';
   // ignore: unused_field
   static const String _apiKey = '396116621233937';
-  static const String _uploadPreset =
-      'expene_tracker'; // ✅ Correct name// You'll create this
+  static const String _uploadPreset = 'expene_tracker';
 
   // Upload image to Cloudinary
   Future<String> uploadImageToCloudinary({
@@ -107,37 +106,6 @@ class CloudinaryService {
     }
   }
 
-  // OPTION 3: Just pick image (returns local path) - if you want local backup
-  Future<String?> pickImageLocalOnly() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-      return image?.path;
-    } catch (e) {
-      print('❌ Local image pick error: $e');
-      return null;
-    }
-  }
-
-  // OPTION 4: Just take photo (returns local path) - if you want local backup
-  Future<String?> takePhotoLocalOnly() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? photo = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-      return photo?.path;
-    } catch (e) {
-      print('❌ Local camera error: $e');
-      return null;
-    }
-  }
+  // REMOVED: pickImageLocalOnly() - No local storage
+  // REMOVED: takePhotoLocalOnly() - No local storage
 }

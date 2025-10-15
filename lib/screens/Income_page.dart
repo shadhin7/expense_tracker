@@ -16,8 +16,7 @@ class IncomePage extends StatefulWidget {
 class _IncomePageState extends State<IncomePage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String? _capturedImagePath;
-  String? _cloudinaryImageUrl; // ADD THIS: Cloudinary URL
+  String? _cloudinaryImageUrl; // ONLY Cloudinary URL
 
   String? _selectedCategory;
   String? _selectedWallet;
@@ -45,30 +44,30 @@ class _IncomePageState extends State<IncomePage> {
     super.dispose();
   }
 
-  // UPDATED: Image capture methods with Cloudinary options
+  // UPDATED: Image capture methods - ONLY CLOUD OPTIONS
   void _handleCaptureImage() async {
     final balanceProvider = Provider.of<BalanceProvider>(
       context,
       listen: false,
     );
 
-    // Show options dialog
+    // Show simplified options dialog - ONLY CLOUD
     final option = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Add Receipt'),
-        content: Text('Choose how to add receipt image:'),
+        content: Text('Upload receipt to cloud:'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
-            child: Text(' Camera'),
+            child: Text('📷 Take Photo'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
-            child: Text(' Gallery'),
+            child: Text('🖼️ Choose from Gallery'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, 0), // Gallery + Cloudinary
+            onPressed: () => Navigator.pop(context, 0), // Cancel
             child: Text('Cancel'),
           ),
         ],
@@ -79,7 +78,6 @@ class _IncomePageState extends State<IncomePage> {
 
     try {
       String? imageUrl;
-      String? localPath;
 
       switch (option) {
         case 1: // Camera + Cloudinary
@@ -88,24 +86,16 @@ class _IncomePageState extends State<IncomePage> {
         case 2: // Gallery + Cloudinary
           imageUrl = await balanceProvider.pickFromGalleryAndUpload();
           break;
-        case 3: // Local only
-          localPath = await balanceProvider.getLocalImagePath();
-          break;
       }
 
-      if (imageUrl != null || localPath != null) {
+      if (imageUrl != null) {
         setState(() {
           _cloudinaryImageUrl = imageUrl; // Store Cloudinary URL
-          _capturedImagePath = localPath; // Store local path
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              imageUrl != null
-                  ? '✅ Receipt uploaded!'
-                  : '📱 Receipt saved locally',
-            ),
+            content: Text('✅ Receipt uploaded to cloud!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -113,7 +103,7 @@ class _IncomePageState extends State<IncomePage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Error: ${e.toString()}'),
+          content: Text('❌ Upload failed: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -124,11 +114,10 @@ class _IncomePageState extends State<IncomePage> {
   void _removeImage() {
     setState(() {
       _cloudinaryImageUrl = null;
-      _capturedImagePath = null;
     });
   }
 
-  // UPDATED: Submit income with Cloudinary support
+  // UPDATED: Submit income with Cloudinary support ONLY
   Future<void> _submitIncome(double amount) async {
     if (_isSubmitting) return;
 
@@ -157,14 +146,13 @@ class _IncomePageState extends State<IncomePage> {
     });
 
     try {
-      // UPDATED: Use both Cloudinary URL and local path
+      // UPDATED: Only Cloudinary URL, no local path
       await Provider.of<BalanceProvider>(context, listen: false).addIncome(
         amount,
         _selectedCategory!,
         _descriptionController.text.trim(),
         _selectedWallet!,
-        _cloudinaryImageUrl, // Cloudinary URL (priority)
-        _capturedImagePath, // Local path (backup)
+        _cloudinaryImageUrl, // ONLY Cloudinary URL
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +180,7 @@ class _IncomePageState extends State<IncomePage> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final balanceProvider = Provider.of<BalanceProvider>(context); // ADD THIS
+    final balanceProvider = Provider.of<BalanceProvider>(context);
 
     final allCategories = [
       ..._defaultCategories,
@@ -213,6 +201,7 @@ class _IncomePageState extends State<IncomePage> {
         return Scaffold(
           backgroundColor: Colors.green,
           appBar: AppBar(
+            scrolledUnderElevation: 0,
             foregroundColor: Colors.white,
             backgroundColor: Colors.green,
             title: Text(
@@ -282,10 +271,9 @@ class _IncomePageState extends State<IncomePage> {
                           child: TransactionForm(
                             buttonColor: Colors.green,
                             imagePath:
-                                _cloudinaryImageUrl ??
-                                _capturedImagePath, // UPDATED: Show Cloudinary URL first
+                                _cloudinaryImageUrl, // ONLY Cloudinary URL
                             onCaptureImage: _handleCaptureImage,
-                            onRemoveImage: _removeImage, // ADD THIS
+                            onRemoveImage: _removeImage,
                             onSubmit: (amount) async =>
                                 await _submitIncome(amount),
                             selectedCategory: _selectedCategory,
@@ -370,7 +358,6 @@ class _IncomePageState extends State<IncomePage> {
                             amountController: _amountController,
                             descriptionController: _descriptionController,
                             isLoading: _isSubmitting,
-                            // ADD THIS: Show upload progress
                             showImageUploadProgress:
                                 balanceProvider.isUploadingImage,
                           ),
@@ -380,7 +367,7 @@ class _IncomePageState extends State<IncomePage> {
                   ),
                 ),
               ),
-              // ADD THIS: Show upload progress overlay
+              // Upload progress overlay
               if (balanceProvider.isUploadingImage)
                 Container(
                   color: Colors.black54,
@@ -395,7 +382,7 @@ class _IncomePageState extends State<IncomePage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading receipt...',
+                          'Uploading to cloud...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

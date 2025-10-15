@@ -207,7 +207,7 @@ class _HistoryState extends State<History> {
     final provider = Provider.of<BalanceProvider>(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromRGBO(255, 255, 255, 1),
       appBar: AppBar(
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
@@ -551,7 +551,9 @@ class _HistoryState extends State<History> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
-                              child: CircularProgressIndicator(),
+                              child: CircularProgressIndicator(
+                                color: Colors.blue,
+                              ),
                             );
                           }
                           if (snapshot.hasError) {

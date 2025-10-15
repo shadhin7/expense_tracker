@@ -23,8 +23,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   late TextEditingController descriptionController;
   String? selectedCategory;
   String? selectedWallet;
-  String? imagePath;
-  String? cloudinaryImageUrl; // ADD THIS: Cloudinary URL
+  String? cloudinaryImageUrl; // ONLY Cloudinary URL
   bool isRepeat = false;
   bool _isSubmitting = false;
 
@@ -59,8 +58,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         ? widget.transaction.category
         : categories.first;
 
-    // UPDATED: Initialize both image paths
-    imagePath = widget.transaction.localImagePath;
+    // UPDATED: Only Cloudinary URL
     cloudinaryImageUrl = widget.transaction.receiptImageUrl;
   }
 
@@ -71,36 +69,31 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     super.dispose();
   }
 
-  // UPDATED: Image capture methods with Cloudinary options
+  // UPDATED: Image capture methods - ONLY CLOUD OPTIONS
   Future<void> _pickImage() async {
     final balanceProvider = Provider.of<BalanceProvider>(
       context,
       listen: false,
     );
 
-    // Show options dialog
+    // Show simplified options dialog - ONLY CLOUD
     final option = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Update Receipt'),
-        content: Text('Choose how to update receipt image:'),
+        content: Text('Upload receipt to cloud:'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
-            child: Text('📸 Camera + Cloud'),
+            child: Text('📷 Take Photo'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
-            child: Text('🖼️ Gallery + Cloud'),
+            child: Text('🖼️ Choose from Gallery'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 3), // Local only
-            child: Text('📱 Local Only'),
-          ),
-          if (cloudinaryImageUrl != null ||
-              imagePath != null) // ADD THIS: Remove option
+          if (cloudinaryImageUrl != null) // ADD THIS: Remove option
             TextButton(
-              onPressed: () => Navigator.pop(context, 4), // Remove image
+              onPressed: () => Navigator.pop(context, 3), // Remove image
               child: Text('🗑️ Remove Receipt'),
             ),
           TextButton(
@@ -115,7 +108,6 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
 
     try {
       String? newImageUrl;
-      String? newLocalPath;
 
       switch (option) {
         case 1: // Camera + Cloudinary
@@ -124,13 +116,9 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         case 2: // Gallery + Cloudinary
           newImageUrl = await balanceProvider.pickFromGalleryAndUpload();
           break;
-        case 3: // Local only
-          newLocalPath = await balanceProvider.getLocalImagePath();
-          break;
-        case 4: // Remove image
+        case 3: // Remove image
           setState(() {
             cloudinaryImageUrl = null;
-            imagePath = null;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -141,19 +129,14 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
           return;
       }
 
-      if (newImageUrl != null || newLocalPath != null) {
+      if (newImageUrl != null) {
         setState(() {
           cloudinaryImageUrl = newImageUrl; // Store Cloudinary URL
-          imagePath = newLocalPath; // Store local path
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              newImageUrl != null
-                  ? '✅ Receipt updated in cloud!'
-                  : '📱 Receipt updated locally',
-            ),
+            content: Text('✅ Receipt updated in cloud!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -161,18 +144,17 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Error: ${e.toString()}'),
+          content: Text('❌ Upload failed: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  // ADD THIS: Remove image method
+  // UPDATED: Remove image method
   void _removeImage() {
     setState(() {
       cloudinaryImageUrl = null;
-      imagePath = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +165,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     );
   }
 
-  // UPDATED: Submit form with Cloudinary support
+  // UPDATED: Submit form with Cloudinary support ONLY
   Future<void> _submitForm() async {
     if (_isSubmitting) return;
 
@@ -225,7 +207,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     });
 
     try {
-      // UPDATED: Use both Cloudinary URL and local path
+      // UPDATED: Only Cloudinary URL, no local path
       await Provider.of<BalanceProvider>(
         context,
         listen: false,
@@ -235,8 +217,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         selectedCategory!,
         descriptionController.text.trim(),
         selectedWallet!,
-        cloudinaryImageUrl, // Cloudinary URL (priority)
-        imagePath, // Local path (backup)
+        cloudinaryImageUrl, // ONLY Cloudinary URL
       );
 
       // Show success message
@@ -266,7 +247,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final isIncome = widget.transaction.isIncome;
-    final balanceProvider = Provider.of<BalanceProvider>(context); // ADD THIS
+    final balanceProvider = Provider.of<BalanceProvider>(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -280,6 +261,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         return Scaffold(
           backgroundColor: isIncome ? Colors.green : Colors.red,
           appBar: AppBar(
+            scrolledUnderElevation: 0,
             title: const Text('Edit Transaction'),
             centerTitle: true,
             backgroundColor: isIncome ? Colors.green : Colors.red,
@@ -355,13 +337,12 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                                 setState(() => selectedWallet = val),
                             onRepeatChanged: (val) =>
                                 setState(() => isRepeat = val),
-                            // UPDATED: Show Cloudinary URL first
-                            imagePath: cloudinaryImageUrl ?? imagePath,
+                            imagePath:
+                                cloudinaryImageUrl, // ONLY Cloudinary URL
                             onCaptureImage: _pickImage,
-                            onRemoveImage: _removeImage, // ADD THIS
+                            onRemoveImage: _removeImage,
                             onSubmit: (_) => _submitForm(),
                             isLoading: _isSubmitting,
-                            // ADD THIS: Show upload progress
                             showImageUploadProgress:
                                 balanceProvider.isUploadingImage,
                           ),
@@ -371,7 +352,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                   ),
                 ),
               ),
-              // ADD THIS: Show upload progress overlay
+              // Upload progress overlay
               if (balanceProvider.isUploadingImage)
                 Container(
                   color: Colors.black54,
@@ -386,7 +367,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading receipt to cloud...',
+                          'Uploading to cloud...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

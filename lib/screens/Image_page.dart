@@ -18,6 +18,7 @@ class FullScreenImageViewer extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),

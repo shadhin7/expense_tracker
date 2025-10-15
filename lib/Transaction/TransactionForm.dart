@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:expense_track/widgets/CustomDropdown.dart';
 import 'package:expense_track/widgets/RepeatToggle.dart';
 import 'package:flutter/material.dart';
@@ -44,14 +43,7 @@ class TransactionForm extends StatelessWidget {
     this.showImageUploadProgress = false,
   });
 
-  bool get _isNetworkImage {
-    return imagePath != null &&
-        (imagePath!.startsWith('http://') || imagePath!.startsWith('https://'));
-  }
-
-  bool get _isLocalImage {
-    return imagePath != null && !_isNetworkImage;
-  }
+  // REMOVED: _isLocalImage getter since we don't need local storage
 
   @override
   Widget build(BuildContext context) {
@@ -246,42 +238,6 @@ class TransactionForm extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
-                            // Cloudinary badge for network images
-                            // if (_isNetworkImage)
-                            //   Positioned(
-                            //     top: 8,
-                            //     left: 8,
-                            //     child: Container(
-                            //       padding: const EdgeInsets.symmetric(
-                            //         horizontal: 8,
-                            //         vertical: 4,
-                            //       ),
-                            //       decoration: BoxDecoration(
-                            //         color: Colors.green,
-                            //         borderRadius: BorderRadius.circular(8),
-                            //       ),
-                            //       child: Row(
-                            //         mainAxisSize: MainAxisSize.min,
-                            //         children: [
-                            //           const Icon(
-                            //             Icons.cloud_upload,
-                            //             color: Colors.white,
-                            //             size: 12,
-                            //           ),
-                            //           const SizedBox(width: 4),
-                            //           Text(
-                            //             'Cloud',
-                            //             style: TextStyle(
-                            //               color: Colors.white,
-                            //               fontSize: 10,
-                            //               fontWeight: FontWeight.bold,
-                            //             ),
-                            //           ),
-                            //         ],
-                            //       ),
-                            //     ),
-                            //   ),
                           ],
                         ),
                       ),
@@ -365,8 +321,12 @@ class TransactionForm extends StatelessWidget {
   }
 
   // FIXED: Accept imageHeight as parameter instead of using context
+  // UPDATED: Removed local image handling
   Widget _buildImagePreview(double imageHeight) {
-    if (_isNetworkImage) {
+    // Only handle network images (cloud storage)
+    if (imagePath != null &&
+        (imagePath!.startsWith('http://') ||
+            imagePath!.startsWith('https://'))) {
       // Cloudinary network image
       return CachedNetworkImage(
         imageUrl: imagePath!,
@@ -395,48 +355,8 @@ class TransactionForm extends StatelessWidget {
           ),
         ),
       );
-    } else if (_isLocalImage) {
-      // Local file image
-      return FutureBuilder<bool>(
-        future: _checkImageExists(imagePath!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: imageHeight,
-              color: Colors.grey[200],
-              child: Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(buttonColor),
-                ),
-              ),
-            );
-          }
-
-          if (snapshot.hasData && snapshot.data == true) {
-            return Image.file(
-              File(imagePath!),
-              height: imageHeight,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            );
-          } else {
-            return Container(
-              height: imageHeight,
-              color: Colors.grey[300],
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.photo, size: 40, color: Colors.grey),
-                  const SizedBox(height: 8),
-                  const Text('Image not found'),
-                ],
-              ),
-            );
-          }
-        },
-      );
     } else {
-      // Fallback
+      // Fallback - no local images, only cloud
       return Container(
         height: imageHeight,
         color: Colors.grey[300],
@@ -459,12 +379,5 @@ class TransactionForm extends StatelessWidget {
     return screenHeight * 0.2;
   }
 
-  Future<bool> _checkImageExists(String imagePath) async {
-    try {
-      final file = File(imagePath);
-      return await file.exists();
-    } catch (_) {
-      return false;
-    }
-  }
+  // REMOVED: _checkImageExists method since we don't need to check local files
 }

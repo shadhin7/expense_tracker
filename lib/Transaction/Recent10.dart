@@ -56,7 +56,7 @@ class RecentTransactionsWidget extends StatelessWidget {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(color: Colors.blue),
                   ),
                 );
               }
@@ -123,7 +123,7 @@ class RecentTransactionsWidget extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => TransactionDetailPage(
                             transaction: tx,
-                            transactionId: tx.id!,
+                            transactionId: tx.id,
                           ),
                         ),
                       );
