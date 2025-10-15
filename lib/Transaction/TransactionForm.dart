@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:expense_track/widgets/CustomDropdown.dart';
 import 'package:expense_track/widgets/RepeatToggle.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class TransactionForm extends StatelessWidget {
   final Color buttonColor;
@@ -18,7 +19,9 @@ class TransactionForm extends StatelessWidget {
   final TextEditingController descriptionController;
   final String? imagePath;
   final VoidCallback onCaptureImage;
+  final VoidCallback? onRemoveImage;
   final bool isLoading;
+  final bool showImageUploadProgress;
 
   const TransactionForm({
     super.key,
@@ -36,12 +39,24 @@ class TransactionForm extends StatelessWidget {
     required this.descriptionController,
     required this.imagePath,
     required this.onCaptureImage,
+    this.onRemoveImage,
     this.isLoading = false,
+    this.showImageUploadProgress = false,
   });
+
+  bool get _isNetworkImage {
+    return imagePath != null &&
+        (imagePath!.startsWith('http://') || imagePath!.startsWith('https://'));
+  }
+
+  bool get _isLocalImage {
+    return imagePath != null && !_isNetworkImage;
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth >= 600 && screenWidth < 1000;
     final isDesktop = screenWidth >= 1000;
 
@@ -58,6 +73,9 @@ class TransactionForm extends StatelessWidget {
       horizontal: isTablet ? 36 : 30,
       vertical: isTablet ? 18 : 14,
     );
+
+    // FIXED: Calculate image height here where we have context
+    final double imageHeight = _getImageHeight(screenWidth, screenHeight);
 
     return Center(
       child: ConstrainedBox(
@@ -138,72 +156,142 @@ class TransactionForm extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-                // 📎 Image Attachment
-                TextButton.icon(
-                  onPressed: isLoading ? null : onCaptureImage,
-                  icon: Icon(
-                    Icons.attach_file_rounded,
-                    color: isLoading ? Colors.grey : Colors.blueGrey,
-                    size: isTablet ? 24 : 20,
-                  ),
-                  label: Text(
-                    'Add attachment',
-                    style: TextStyle(
-                      color: isLoading ? Colors.grey : Colors.blueGrey,
-                      fontSize: isTablet ? 16 : 14,
+                // 📎 Image Attachment Section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Image upload button
+                    TextButton.icon(
+                      onPressed: isLoading || showImageUploadProgress
+                          ? null
+                          : onCaptureImage,
+                      icon: Icon(
+                        Icons.attach_file_rounded,
+                        color: (isLoading || showImageUploadProgress)
+                            ? Colors.grey
+                            : Colors.blueGrey,
+                        size: isTablet ? 24 : 20,
+                      ),
+                      label: showImageUploadProgress
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.blueGrey,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Uploading...',
+                                  style: TextStyle(
+                                    color: Colors.blueGrey,
+                                    fontSize: isTablet ? 16 : 14,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Add receipt',
+                              style: TextStyle(
+                                color: (isLoading || showImageUploadProgress)
+                                    ? Colors.grey
+                                    : Colors.blueGrey,
+                                fontSize: isTablet ? 16 : 14,
+                              ),
+                            ),
                     ),
-                  ),
+
+                    // 🖼️ Display selected image
+                    if (imagePath != null && imagePath!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                // FIXED: Pass imageHeight to _buildImagePreview
+                                child: _buildImagePreview(imageHeight),
+                              ),
+                            ),
+
+                            // Remove image button
+                            if (onRemoveImage != null &&
+                                !showImageUploadProgress)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    onPressed: onRemoveImage,
+                                  ),
+                                ),
+                              ),
+
+                            // Cloudinary badge for network images
+                            // if (_isNetworkImage)
+                            //   Positioned(
+                            //     top: 8,
+                            //     left: 8,
+                            //     child: Container(
+                            //       padding: const EdgeInsets.symmetric(
+                            //         horizontal: 8,
+                            //         vertical: 4,
+                            //       ),
+                            //       decoration: BoxDecoration(
+                            //         color: Colors.green,
+                            //         borderRadius: BorderRadius.circular(8),
+                            //       ),
+                            //       child: Row(
+                            //         mainAxisSize: MainAxisSize.min,
+                            //         children: [
+                            //           const Icon(
+                            //             Icons.cloud_upload,
+                            //             color: Colors.white,
+                            //             size: 12,
+                            //           ),
+                            //           const SizedBox(width: 4),
+                            //           Text(
+                            //             'Cloud',
+                            //             style: TextStyle(
+                            //               color: Colors.white,
+                            //               fontSize: 10,
+                            //               fontWeight: FontWeight.bold,
+                            //             ),
+                            //           ),
+                            //         ],
+                            //       ),
+                            //     ),
+                            //   ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-
-                // 🖼️ Display selected image (responsive)
-                if (imagePath != null && imagePath!.isNotEmpty)
-                  FutureBuilder<bool>(
-                    future: _checkImageExists(imagePath!),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return SizedBox(
-                          height: 150,
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      if (snapshot.hasData && snapshot.data == true) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            File(imagePath!),
-                            height: isTablet
-                                ? 240
-                                : isDesktop
-                                ? 280
-                                : 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      } else {
-                        return Container(
-                          height: isTablet ? 240 : 150,
-                          color: Colors.grey[300],
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.photo, size: 40, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text('No image selected'),
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                  ),
                 const SizedBox(height: 24),
 
                 // 🟢 Submit Button
                 ElevatedButton(
-                  onPressed: isLoading
+                  onPressed: isLoading || showImageUploadProgress
                       ? null
                       : () {
                           final amountText = amountController.text.trim();
@@ -274,6 +362,101 @@ class TransactionForm extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // FIXED: Accept imageHeight as parameter instead of using context
+  Widget _buildImagePreview(double imageHeight) {
+    if (_isNetworkImage) {
+      // Cloudinary network image
+      return CachedNetworkImage(
+        imageUrl: imagePath!,
+        height: imageHeight,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          height: imageHeight,
+          color: Colors.grey[200],
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(buttonColor),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          height: imageHeight,
+          color: Colors.grey[300],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 40, color: Colors.grey),
+              const SizedBox(height: 8),
+              const Text('Failed to load image'),
+            ],
+          ),
+        ),
+      );
+    } else if (_isLocalImage) {
+      // Local file image
+      return FutureBuilder<bool>(
+        future: _checkImageExists(imagePath!),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: imageHeight,
+              color: Colors.grey[200],
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(buttonColor),
+                ),
+              ),
+            );
+          }
+
+          if (snapshot.hasData && snapshot.data == true) {
+            return Image.file(
+              File(imagePath!),
+              height: imageHeight,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            );
+          } else {
+            return Container(
+              height: imageHeight,
+              color: Colors.grey[300],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.photo, size: 40, color: Colors.grey),
+                  const SizedBox(height: 8),
+                  const Text('Image not found'),
+                ],
+              ),
+            );
+          }
+        },
+      );
+    } else {
+      // Fallback
+      return Container(
+        height: imageHeight,
+        color: Colors.grey[300],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.photo, size: 40, color: Colors.grey),
+            const SizedBox(height: 8),
+            const Text('No image selected'),
+          ],
+        ),
+      );
+    }
+  }
+
+  // FIXED: Use screen dimensions instead of context
+  double _getImageHeight(double screenWidth, double screenHeight) {
+    if (screenWidth >= 1000) return screenHeight * 0.35;
+    if (screenWidth >= 600) return screenHeight * 0.25;
+    return screenHeight * 0.2;
   }
 
   Future<bool> _checkImageExists(String imagePath) async {

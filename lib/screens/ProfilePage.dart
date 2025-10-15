@@ -1,4 +1,3 @@
-import 'package:expense_track/graph/test.dart';
 import 'package:expense_track/screens/category_management_page.dart';
 import 'package:expense_track/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -132,21 +131,21 @@ class ProfilePage extends StatelessWidget {
                               );
                             },
                           ),
-                          // In your main screen somewhere
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TestCloudinaryScreen(
-                                    userId: 'test_user_id',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text('Test Cloudinary'),
-                          ),
 
+                          // In your main screen somewhere
+                          // ElevatedButton(
+                          //   onPressed: () {
+                          //     Navigator.push(
+                          //       context,
+                          //       MaterialPageRoute(
+                          //         builder: (context) => TestCloudinaryScreen(
+                          //           userId: 'test_user_id',
+                          //         ),
+                          //       ),
+                          //     );
+                          //   },
+                          //   child: Text('Test Cloudinary'),
+                          // ),
                           const SizedBox(height: 12),
 
                           // push logout to bottom on taller screens

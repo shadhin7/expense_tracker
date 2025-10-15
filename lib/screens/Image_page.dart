@@ -1,29 +1,30 @@
+// Update your FullScreenImageViewer to accept isNetworkImage parameter
 import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:photo_view/photo_view.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
   final String imagePath;
+  final bool isNetworkImage;
 
-  const FullScreenImageViewer({super.key, required this.imagePath});
+  const FullScreenImageViewer({
+    required this.imagePath,
+    this.isNetworkImage = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        title: const Text('Attachment'),
-        centerTitle: true,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
       ),
       body: Center(
-        child: PhotoView(
-          imageProvider: FileImage(File(imagePath)),
-          backgroundDecoration: const BoxDecoration(color: Colors.black),
-          minScale: PhotoViewComputedScale.contained,
-          maxScale: PhotoViewComputedScale.covered * 3.0,
-        ),
+        child: isNetworkImage
+            ? CachedNetworkImage(imageUrl: imagePath, fit: BoxFit.contain)
+            : Image.file(File(imagePath), fit: BoxFit.contain),
       ),
     );
   }

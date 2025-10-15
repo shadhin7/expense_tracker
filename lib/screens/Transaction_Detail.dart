@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // ADD THIS
 
 class TransactionDetailPage extends StatelessWidget {
   final TransactionModel transaction;
@@ -29,7 +30,7 @@ class TransactionDetailPage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: isIncome ? Colors.green : Colors.red,
         title: Text(
-          "Transaction Details", // Improved title
+          "Transaction Details",
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: 16,
@@ -225,73 +226,69 @@ class TransactionDetailPage extends StatelessWidget {
                       ),
                     ),
 
-                    // Image Section
-                    if (transaction.imagePath != null &&
-                        transaction.imagePath!.isNotEmpty) ...[
+                    // UPDATED: Image Section with Cloudinary support
+                    if (transaction.hasImage) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: FutureBuilder<bool>(
-                          future: _checkImageExists(transaction.imagePath!),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            if (snapshot.hasData && snapshot.data == true) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 8.0),
-                                    child: Text(
-                                      "Attachment",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: isTablet ? 16 : 14,
-                                        color: Colors.grey[700],
-                                      ),
+                                  Text(
+                                    "Receipt",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: isTablet ? 16 : 14,
+                                      color: Colors.grey[700],
                                     ),
                                   ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => FullScreenImageViewer(
-                                          imagePath: transaction.imagePath!,
-                                        ),
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.file(
-                                        File(transaction.imagePath!),
-                                        height: imageHeight,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
+                                  SizedBox(width: 8),
+                                  // ADD THIS: Cloudinary badge
+                                  // if (transaction.receiptImageUrl != null)
+                                  //   Container(
+                                  //     padding: EdgeInsets.symmetric(
+                                  //       horizontal: 6,
+                                  //       vertical: 2,
+                                  //     ),
+                                  //     decoration: BoxDecoration(
+                                  //       color: Colors.green,
+                                  //       borderRadius: BorderRadius.circular(6),
+                                  //     ),
+                                  //     child: Row(
+                                  //       mainAxisSize: MainAxisSize.min,
+                                  //       children: [
+                                  //         Icon(
+                                  //           Icons.cloud,
+                                  //           color: Colors.white,
+                                  //           size: 12,
+                                  //         ),
+                                  //         SizedBox(width: 4),
+                                  //         Text(
+                                  //           'Cloud',
+                                  //           style: TextStyle(
+                                  //             color: Colors.white,
+                                  //             fontSize: 10,
+                                  //             fontWeight: FontWeight.bold,
+                                  //           ),
+                                  //         ),
+                                  //       ],
+                                  //     ),
+                                  //   ),
                                 ],
-                              );
-                            }
-
-                            return const Text(
-                              'Attachment not available',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
                               ),
-                            );
-                          },
+                            ),
+                            _buildImagePreview(imageHeight, context),
+                          ],
                         ),
                       ),
                     ] else
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          'No attachment',
+                          'No receipt attached',
                           style: TextStyle(fontSize: 13, color: Colors.grey),
                         ),
                       ),
@@ -341,6 +338,162 @@ class TransactionDetailPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  // ADD THIS: Build image preview for both Cloudinary and local images
+  // REPLACE the _buildImagePreview method with this:
+  Widget _buildImagePreview(double imageHeight, BuildContext context) {
+    // ADD context parameter
+    // Use displayImage getter which prioritizes Cloudinary URL
+    final displayImage = transaction.displayImage;
+
+    if (displayImage == null) {
+      return Container(
+        height: imageHeight,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.photo, size: 40, color: Colors.grey),
+              SizedBox(height: 8),
+              Text('No image available'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Check if it's a network image (Cloudinary)
+    final isNetworkImage = displayImage.startsWith('http');
+
+    if (isNetworkImage) {
+      // Cloudinary image
+      return GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImageViewer(
+              imagePath: displayImage,
+              isNetworkImage: true,
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              CachedNetworkImage(
+                imageUrl: displayImage,
+                height: imageHeight,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: imageHeight,
+                  color: Colors.grey[200],
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: imageHeight,
+                  color: Colors.grey[300],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('Failed to load image'),
+                    ],
+                  ),
+                ),
+              ),
+              // Cloudinary badge overlay
+              // Positioned(
+              //   top: 8,
+              //   right: 8,
+              //   child: Container(
+              //     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              //     decoration: BoxDecoration(
+              //       color: Colors.black54,
+              //       borderRadius: BorderRadius.circular(8),
+              //     ),
+              //     child: Row(
+              //       mainAxisSize: MainAxisSize.min,
+              //       children: [
+              //         Icon(Icons.cloud_upload, color: Colors.white, size: 12),
+              //         SizedBox(width: 4),
+              //         Text(
+              //           'Cloud',
+              //           style: TextStyle(
+              //             color: Colors.white,
+              //             fontSize: 10,
+              //             fontWeight: FontWeight.bold,
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Local image
+      return FutureBuilder<bool>(
+        future: _checkImageExists(displayImage),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: imageHeight,
+              color: Colors.grey[200],
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (snapshot.hasData && snapshot.data == true) {
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FullScreenImageViewer(
+                    imagePath: displayImage,
+                    isNetworkImage: false,
+                  ),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  File(displayImage),
+                  height: imageHeight,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          }
+
+          return Container(
+            height: imageHeight,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.photo, size: 40, color: Colors.grey),
+                SizedBox(height: 8),
+                Text('Image not found'),
+              ],
+            ),
+          );
+        },
+      );
+    }
   }
 
   // Helper method to check if image file exists

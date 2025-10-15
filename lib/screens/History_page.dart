@@ -641,7 +641,7 @@ class _HistoryState extends State<History> {
                                     MaterialPageRoute(
                                       builder: (_) => TransactionDetailPage(
                                         transaction: tx,
-                                        transactionId: tx.id!,
+                                        transactionId: tx.id,
                                       ),
                                     ),
                                   ),

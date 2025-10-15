@@ -2,7 +2,6 @@
 
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/category_provider.dart';
-import 'package:expense_track/Provider/image_capture.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +17,7 @@ class _ExpensePageState extends State<ExpensePage> {
   final TextEditingController _expenseController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String? _capturedImagePath;
+  String? _cloudinaryImageUrl; // ADD THIS: Cloudinary URL
 
   String? _selectedCategory;
   String? _selectedWallet;
@@ -53,15 +53,94 @@ class _ExpensePageState extends State<ExpensePage> {
     super.dispose();
   }
 
+  // UPDATED: Image capture methods with Cloudinary options
   void _handleCaptureImage() async {
-    final path = await captureImageFromCamera();
-    if (path != null) {
-      setState(() {
-        _capturedImagePath = path;
-      });
+    final balanceProvider = Provider.of<BalanceProvider>(
+      context,
+      listen: false,
+    );
+
+    // Show options dialog
+    final option = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Receipt'),
+        content: Text('Choose how to add receipt image:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
+            child: Text('Camera'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
+            child: Text('Gallery'),
+          ),
+          // TextButton(
+          //   onPressed: () => Navigator.pop(context, 3), // Local only
+          //   child: Text('📱 Local Only'),
+          // ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 0), // Cancel
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (option == null || option == 0) return;
+
+    try {
+      String? imageUrl;
+      String? localPath;
+
+      switch (option) {
+        case 1: // Camera + Cloudinary
+          imageUrl = await balanceProvider.takePhotoAndUpload();
+          break;
+        case 2: // Gallery + Cloudinary
+          imageUrl = await balanceProvider.pickFromGalleryAndUpload();
+          break;
+        case 3: // Local only
+          localPath = await balanceProvider.getLocalImagePath();
+          break;
+      }
+
+      if (imageUrl != null || localPath != null) {
+        setState(() {
+          _cloudinaryImageUrl = imageUrl; // Store Cloudinary URL
+          _capturedImagePath = localPath; // Store local path
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              imageUrl != null
+                  ? '✅ Receipt uploaded to cloud!'
+                  : '📱 Receipt saved locally',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  // UPDATED: Remove image method
+  void _removeImage() {
+    setState(() {
+      _cloudinaryImageUrl = null;
+      _capturedImagePath = null;
+    });
+  }
+
+  // UPDATED: Submit expense with Cloudinary support
   Future<void> _submitExpense(double amount) async {
     if (_isSubmitting) return;
 
@@ -90,12 +169,14 @@ class _ExpensePageState extends State<ExpensePage> {
     });
 
     try {
+      // UPDATED: Use both Cloudinary URL and local path
       await Provider.of<BalanceProvider>(context, listen: false).addExpense(
         amount,
         _selectedCategory!,
         _descriptionController.text.trim(),
         _selectedWallet!,
-        _capturedImagePath,
+        _cloudinaryImageUrl, // Cloudinary URL (priority)
+        _capturedImagePath, // Local path (backup)
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,6 +204,7 @@ class _ExpensePageState extends State<ExpensePage> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
+    final balanceProvider = Provider.of<BalanceProvider>(context); // ADD THIS
 
     // Combine default + user categories + Add Category button
     final allCategories = [
@@ -152,139 +234,175 @@ class _ExpensePageState extends State<ExpensePage> {
             centerTitle: true,
             leading: const BackButton(color: Colors.white),
           ),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: topPadding),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Text(
-                      'How Much?',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: isTablet ? 20 : 16,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: TextFormField(
-                      controller: _expenseController,
-                      cursorColor: Colors.white,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      style: TextStyle(
-                        fontSize: amountFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'AED 0',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: amountFontSize,
+          body: Stack(
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: topPadding),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                        ),
+                        child: Text(
+                          'How Much?',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: isTablet ? 20 : 16,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(25),
-                          topRight: Radius.circular(25),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                        ),
+                        child: TextFormField(
+                          controller: _expenseController,
+                          cursorColor: Colors.white,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: TextStyle(
+                            fontSize: amountFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'AED 0',
+                            hintStyle: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: amountFontSize,
+                            ),
+                          ),
                         ),
                       ),
-                      child: TransactionForm(
-                        buttonColor: Colors.red,
-                        imagePath: _capturedImagePath,
-                        onCaptureImage: _handleCaptureImage,
-                        onSubmit: (amount) async =>
-                            await _submitExpense(amount),
-                        selectedCategory: _selectedCategory,
-                        selectedWallet: _selectedWallet,
-                        isRepeat: isRepeat,
-                        categories: allCategories,
-                        wallets: _wallets,
-                        onCategoryChanged: (value) async {
-                          if (value == '+ Add Category') {
-                            final newCategory = await showDialog<String>(
-                              context: context,
-                              builder: (context) {
-                                final controller = TextEditingController();
-                                return AlertDialog(
-                                  title: const Text('Add Expense Category'),
-                                  content: TextField(
-                                    controller: controller,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter new category name',
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(
-                                        context,
-                                        controller.text.trim(),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(25),
+                              topRight: Radius.circular(25),
+                            ),
+                          ),
+                          child: TransactionForm(
+                            buttonColor: Colors.red,
+                            imagePath:
+                                _cloudinaryImageUrl ??
+                                _capturedImagePath, // UPDATED: Show Cloudinary URL first
+                            onCaptureImage: _handleCaptureImage,
+                            onRemoveImage: _removeImage, // ADD THIS
+                            onSubmit: (amount) async =>
+                                await _submitExpense(amount),
+                            selectedCategory: _selectedCategory,
+                            selectedWallet: _selectedWallet,
+                            isRepeat: isRepeat,
+                            categories: allCategories,
+                            wallets: _wallets,
+                            onCategoryChanged: (value) async {
+                              if (value == '+ Add Category') {
+                                final newCategory = await showDialog<String>(
+                                  context: context,
+                                  builder: (context) {
+                                    final controller = TextEditingController();
+                                    return AlertDialog(
+                                      title: const Text('Add Expense Category'),
+                                      content: TextField(
+                                        controller: controller,
+                                        decoration: const InputDecoration(
+                                          hintText: 'Enter new category name',
+                                        ),
                                       ),
-                                      child: const Text('Add'),
-                                    ),
-                                  ],
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(
+                                            context,
+                                            controller.text.trim(),
+                                          ),
+                                          child: const Text('Add'),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 );
-                              },
-                            );
 
-                            if (newCategory != null && newCategory.isNotEmpty) {
-                              await Provider.of<CategoryProvider>(
-                                context,
-                                listen: false,
-                              ).addUserCategory(newCategory, 'expense');
+                                if (newCategory != null &&
+                                    newCategory.isNotEmpty) {
+                                  await Provider.of<CategoryProvider>(
+                                    context,
+                                    listen: false,
+                                  ).addUserCategory(newCategory, 'expense');
 
-                              setState(() {
-                                _selectedCategory = newCategory;
-                              });
+                                  setState(() {
+                                    _selectedCategory = newCategory;
+                                  });
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Category "$newCategory" added!',
-                                  ),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          } else {
-                            setState(() => _selectedCategory = value);
-                          }
-                        },
-                        onWalletChanged: (value) =>
-                            setState(() => _selectedWallet = value),
-                        onRepeatChanged: (value) =>
-                            setState(() => isRepeat = value),
-                        amountController: _expenseController,
-                        descriptionController: _descriptionController,
-                        isLoading: _isSubmitting,
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Category "$newCategory" added!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                setState(() => _selectedCategory = value);
+                              }
+                            },
+                            onWalletChanged: (value) =>
+                                setState(() => _selectedWallet = value),
+                            onRepeatChanged: (value) =>
+                                setState(() => isRepeat = value),
+                            amountController: _expenseController,
+                            descriptionController: _descriptionController,
+                            isLoading: _isSubmitting,
+                            // ADD THIS: Show upload progress
+                            showImageUploadProgress:
+                                balanceProvider.isUploadingImage,
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              // ADD THIS: Show upload progress overlay
+              if (balanceProvider.isUploadingImage)
+                Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Uploading receipt ...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
         );
       },
