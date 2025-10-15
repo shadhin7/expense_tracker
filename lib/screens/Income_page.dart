@@ -122,127 +122,173 @@ class _IncomePageState extends State<IncomePage> {
       '+ Add Category',
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.green,
-      appBar: AppBar(
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.green,
-        title: const Text('Income'),
-        centerTitle: true,
-        leading: const BackButton(color: Colors.white),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
-            child: Text('How Much?', style: TextStyle(color: Colors.white70)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: TextFormField(
-              controller: _amountController,
-              cursorColor: Colors.white,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: 'AED 0',
-                hintStyle: TextStyle(color: Colors.white),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isTablet = screenWidth >= 600 && screenWidth < 1100;
+        final isDesktop = screenWidth >= 1100;
+        final double titleFontSize = isDesktop ? 24 : (isTablet ? 20 : 16);
+        final double amountFontSize = isDesktop ? 48 : (isTablet ? 38 : 30);
+        final double topPadding = isDesktop ? 60 : (isTablet ? 40 : 30);
+        final double horizontalPadding = isDesktop ? 48 : (isTablet ? 24 : 16);
+
+        return Scaffold(
+          backgroundColor: Colors.green,
+          appBar: AppBar(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.green,
+            title: Text(
+              'Income',
+              style: TextStyle(fontSize: isTablet ? 24 : 20),
             ),
+            centerTitle: true,
+            leading: const BackButton(color: Colors.white),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-              ),
-              child: TransactionForm(
-                buttonColor: Colors.green,
-                imagePath: _capturedImagePath,
-                onCaptureImage: _handleCaptureImage,
-                onSubmit: (amount) async => await _submitIncome(amount),
-                selectedCategory: _selectedCategory,
-                selectedWallet: _selectedWallet,
-                isRepeat: isRepeat,
-                categories: allCategories,
-                wallets: _wallets,
-                onCategoryChanged: (value) async {
-                  if (value == '+ Add Category') {
-                    final newCategory = await showDialog<String>(
-                      context: context,
-                      builder: (context) {
-                        final controller = TextEditingController();
-                        return AlertDialog(
-                          title: const Text('Add Income Category'),
-                          content: TextField(
-                            controller: controller,
-                            decoration: const InputDecoration(
-                              hintText: 'Enter new category name',
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(
-                                context,
-                                controller.text.trim(),
-                              ),
-                              child: const Text('Add'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    if (newCategory != null && newCategory.isNotEmpty) {
-                      await Provider.of<CategoryProvider>(
-                        context,
-                        listen: false,
-                      ).addUserCategory(newCategory, 'income');
-
-                      setState(() {
-                        _selectedCategory = newCategory;
-                      });
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Category "$newCategory" added!'),
-                          backgroundColor: Colors.green,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: topPadding),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: Text(
+                      'How Much?',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: titleFontSize,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: TextFormField(
+                      controller: _amountController,
+                      cursorColor: Colors.white,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      style: TextStyle(
+                        fontSize: amountFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'AED 0',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: amountFontSize,
                         ),
-                      );
-                    }
-                  } else {
-                    setState(() => _selectedCategory = value);
-                  }
-                },
-                onWalletChanged: (value) =>
-                    setState(() => _selectedWallet = value),
-                onRepeatChanged: (value) => setState(() => isRepeat = value),
-                amountController: _amountController,
-                descriptionController: _descriptionController,
-                isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(25),
+                          topRight: Radius.circular(25),
+                        ),
+                      ),
+                      child: TransactionForm(
+                        buttonColor: Colors.green,
+                        imagePath: _capturedImagePath,
+                        onCaptureImage: _handleCaptureImage,
+                        onSubmit: (amount) async => await _submitIncome(amount),
+                        selectedCategory: _selectedCategory,
+                        selectedWallet: _selectedWallet,
+                        isRepeat: isRepeat,
+                        categories: allCategories,
+                        wallets: _wallets,
+                        onCategoryChanged: (value) async {
+                          if (value == '+ Add Category') {
+                            final newCategory = await showDialog<String>(
+                              context: context,
+                              builder: (context) {
+                                final controller = TextEditingController();
+                                return AlertDialog(
+                                  backgroundColor: Colors.white,
+                                  title: const Text(
+                                    'Add Income Category',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                  content: TextField(
+                                    controller: controller,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Enter new category name',
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(color: Colors.black),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(
+                                        context,
+                                        controller.text.trim(),
+                                      ),
+                                      child: const Text(
+                                        'Add',
+                                        style: TextStyle(color: Colors.blue),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            if (newCategory != null && newCategory.isNotEmpty) {
+                              await Provider.of<CategoryProvider>(
+                                context,
+                                listen: false,
+                              ).addUserCategory(newCategory, 'income');
+
+                              setState(() {
+                                _selectedCategory = newCategory;
+                              });
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Category "$newCategory" added!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } else {
+                            setState(() => _selectedCategory = value);
+                          }
+                        },
+                        onWalletChanged: (value) =>
+                            setState(() => _selectedWallet = value),
+                        onRepeatChanged: (value) =>
+                            setState(() => isRepeat = value),
+                        amountController: _amountController,
+                        descriptionController: _descriptionController,
+                        isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

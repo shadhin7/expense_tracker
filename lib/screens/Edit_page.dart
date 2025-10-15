@@ -53,11 +53,11 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
 
     selectedWallet = wallets.contains(widget.transaction.wallet)
         ? widget.transaction.wallet
-        : wallets.first; // Default to first if not found
+        : wallets.first;
 
     selectedCategory = categories.contains(widget.transaction.category)
         ? widget.transaction.category
-        : categories.first; // Default to first if not found
+        : categories.first;
 
     imagePath = widget.transaction.imagePath;
   }
@@ -161,74 +161,104 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   Widget build(BuildContext context) {
     final isIncome = widget.transaction.isIncome;
 
-    return Scaffold(
-      backgroundColor: isIncome ? Colors.green : Colors.red,
-      appBar: AppBar(
-        title: const Text('Edit Transaction'),
-        centerTitle: true,
-        backgroundColor: isIncome ? Colors.green : Colors.red,
-        foregroundColor: Colors.white,
-        leading: BackButton(color: Colors.white),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
-            child: Text('Edit Amount', style: TextStyle(color: Colors.white70)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isTablet = screenWidth >= 600 && screenWidth < 1000;
+        final isDesktop = screenWidth >= 1000;
+        final double topPadding = isTablet ? 40 : 30;
+        final double amountFontSize = isTablet ? 38 : 30;
+        final horizontalPadding = isDesktop ? screenWidth * 0.18 : 20.0;
+
+        return Scaffold(
+          backgroundColor: isIncome ? Colors.green : Colors.red,
+          appBar: AppBar(
+            title: const Text('Edit Transaction'),
+            centerTitle: true,
+            backgroundColor: isIncome ? Colors.green : Colors.red,
+            foregroundColor: Colors.white,
+            leading: BackButton(color: Colors.white),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: TextFormField(
-              controller: amountController,
-              cursorColor: Colors.white,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: 'AED 0',
-                hintStyle: TextStyle(color: Colors.white),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: topPadding),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: Text(
+                      'Edit Amount',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: isTablet ? 20 : 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: TextFormField(
+                      controller: amountController,
+                      cursorColor: Colors.white,
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      style: TextStyle(
+                        fontSize: amountFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'AED 0',
+                        hintStyle: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(25),
+                          topRight: Radius.circular(25),
+                        ),
+                      ),
+                      child: TransactionForm(
+                        buttonColor: isIncome ? Colors.green : Colors.red,
+                        amountController: amountController,
+                        descriptionController: descriptionController,
+                        selectedCategory: selectedCategory,
+                        selectedWallet: selectedWallet,
+                        isRepeat: isRepeat,
+                        categories: categories,
+                        wallets: wallets,
+                        onCategoryChanged: (val) =>
+                            setState(() => selectedCategory = val),
+                        onWalletChanged: (val) =>
+                            setState(() => selectedWallet = val),
+                        onRepeatChanged: (val) =>
+                            setState(() => isRepeat = val),
+                        imagePath: imagePath,
+                        onCaptureImage: _pickImage,
+                        onSubmit: (_) => _submitForm(),
+                        isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-              ),
-              child: TransactionForm(
-                buttonColor: isIncome ? Colors.green : Colors.red,
-                amountController: amountController,
-                descriptionController: descriptionController,
-                selectedCategory: selectedCategory,
-                selectedWallet: selectedWallet,
-                isRepeat: isRepeat,
-                categories: categories,
-                wallets: wallets,
-                onCategoryChanged: (val) =>
-                    setState(() => selectedCategory = val),
-                onWalletChanged: (val) => setState(() => selectedWallet = val),
-                onRepeatChanged: (val) => setState(() => isRepeat = val),
-                imagePath: imagePath,
-                onCaptureImage: _pickImage,
-                onSubmit: (_) => _submitForm(),
-                isLoading: _isSubmitting, // Pass loading state to form
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

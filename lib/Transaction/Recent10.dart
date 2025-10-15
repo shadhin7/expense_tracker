@@ -107,129 +107,121 @@ class RecentTransactionsWidget extends StatelessWidget {
               }
 
               // Transactions list
-              return Container(
-                constraints: const BoxConstraints(maxHeight: 400),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
-                  itemBuilder: (context, index) {
-                    final tx = transactions[index];
-                    final isIncome = tx.isIncome;
-                    final imagePath = getCategoryImage(tx.category, tx.type);
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: transactions.length,
+                itemBuilder: (context, index) {
+                  final tx = transactions[index];
+                  final isIncome = tx.isIncome;
+                  final imagePath = getCategoryImage(tx.category, tx.type);
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TransactionDetailPage(
-                              transaction: tx,
-                              transactionId: tx.id!,
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TransactionDetailPage(
+                            transaction: tx,
+                            transactionId: tx.id!,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          // Category Icon
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isIncome
+                                  ? Colors.green.shade50
+                                  : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isIncome
+                                    ? Colors.green.shade100
+                                    : Colors.red.shade100,
+                                width: 1,
+                              ),
+                            ),
+                            child: Image.asset(
+                              imagePath,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
                             ),
                           ),
-                        );
-                      },
-                      child: Card(
-                        color: Colors.white,
+                          const SizedBox(width: 12),
 
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
+                          // Transaction Details
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tx.category,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  tx.description.isNotEmpty
+                                      ? tx.description
+                                      : 'No description',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Amount and Date
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Category Icon
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isIncome
-                                      ? Colors.green.shade50
-                                      : Colors.red.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isIncome
-                                        ? Colors.green.shade100
-                                        : Colors.red.shade100,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Image.asset(
-                                  imagePath,
-                                  width: 24,
-                                  height: 24,
-                                  fit: BoxFit.contain,
+                              Text(
+                                "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isIncome ? Colors.green : Colors.red,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-
-                              // Transaction Details
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      tx.category,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      tx.description.isNotEmpty
-                                          ? tx.description
-                                          : 'No description',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 14,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ],
+                              const SizedBox(height: 4),
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(tx.date),
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
                                 ),
                               ),
-
-                              // Amount and Date
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: isIncome
-                                          ? Colors.green
-                                          : Colors.red,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    DateFormat('MMM dd, yyyy').format(tx.date),
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  Text(
-                                    DateFormat('hh:mm a').format(tx.date),
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                DateFormat('hh:mm a').format(tx.date),
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),

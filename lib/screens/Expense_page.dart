@@ -131,127 +131,163 @@ class _ExpensePageState extends State<ExpensePage> {
       '+ Add Category',
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.red,
-      appBar: AppBar(
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.red,
-        title: const Text('Expense'),
-        centerTitle: true,
-        leading: const BackButton(color: Colors.white),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
-            child: Text('How Much?', style: TextStyle(color: Colors.white70)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: TextFormField(
-              controller: _expenseController,
-              cursorColor: Colors.white,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: 'AED 0',
-                hintStyle: TextStyle(color: Colors.white),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isTablet = screenWidth >= 600 && screenWidth < 1000;
+        final isDesktop = screenWidth >= 1000;
+        final double topPadding = isTablet ? 40 : 30;
+        final double amountFontSize = isTablet ? 38 : 30;
+        final horizontalPadding = isDesktop ? screenWidth * 0.2 : 20.0;
+
+        return Scaffold(
+          backgroundColor: Colors.red,
+          appBar: AppBar(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.red,
+            title: Text(
+              'Expense',
+              style: TextStyle(fontSize: isTablet ? 24 : 20),
             ),
+            centerTitle: true,
+            leading: const BackButton(color: Colors.white),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-              ),
-              child: TransactionForm(
-                buttonColor: Colors.red,
-                imagePath: _capturedImagePath,
-                onCaptureImage: _handleCaptureImage,
-                onSubmit: (amount) async => await _submitExpense(amount),
-                selectedCategory: _selectedCategory,
-                selectedWallet: _selectedWallet,
-                isRepeat: isRepeat,
-                categories: allCategories,
-                wallets: _wallets,
-                onCategoryChanged: (value) async {
-                  if (value == '+ Add Category') {
-                    final newCategory = await showDialog<String>(
-                      context: context,
-                      builder: (context) {
-                        final controller = TextEditingController();
-                        return AlertDialog(
-                          title: const Text('Add Expense Category'),
-                          content: TextField(
-                            controller: controller,
-                            decoration: const InputDecoration(
-                              hintText: 'Enter new category name',
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(
-                                context,
-                                controller.text.trim(),
-                              ),
-                              child: const Text('Add'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    if (newCategory != null && newCategory.isNotEmpty) {
-                      await Provider.of<CategoryProvider>(
-                        context,
-                        listen: false,
-                      ).addUserCategory(newCategory, 'expense');
-
-                      setState(() {
-                        _selectedCategory = newCategory;
-                      });
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Category "$newCategory" added!'),
-                          backgroundColor: Colors.green,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: topPadding),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: Text(
+                      'How Much?',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: isTablet ? 20 : 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    child: TextFormField(
+                      controller: _expenseController,
+                      cursorColor: Colors.white,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      style: TextStyle(
+                        fontSize: amountFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'AED 0',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: amountFontSize,
                         ),
-                      );
-                    }
-                  } else {
-                    setState(() => _selectedCategory = value);
-                  }
-                },
-                onWalletChanged: (value) =>
-                    setState(() => _selectedWallet = value),
-                onRepeatChanged: (value) => setState(() => isRepeat = value),
-                amountController: _expenseController,
-                descriptionController: _descriptionController,
-                isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(25),
+                          topRight: Radius.circular(25),
+                        ),
+                      ),
+                      child: TransactionForm(
+                        buttonColor: Colors.red,
+                        imagePath: _capturedImagePath,
+                        onCaptureImage: _handleCaptureImage,
+                        onSubmit: (amount) async =>
+                            await _submitExpense(amount),
+                        selectedCategory: _selectedCategory,
+                        selectedWallet: _selectedWallet,
+                        isRepeat: isRepeat,
+                        categories: allCategories,
+                        wallets: _wallets,
+                        onCategoryChanged: (value) async {
+                          if (value == '+ Add Category') {
+                            final newCategory = await showDialog<String>(
+                              context: context,
+                              builder: (context) {
+                                final controller = TextEditingController();
+                                return AlertDialog(
+                                  title: const Text('Add Expense Category'),
+                                  content: TextField(
+                                    controller: controller,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Enter new category name',
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(
+                                        context,
+                                        controller.text.trim(),
+                                      ),
+                                      child: const Text('Add'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            if (newCategory != null && newCategory.isNotEmpty) {
+                              await Provider.of<CategoryProvider>(
+                                context,
+                                listen: false,
+                              ).addUserCategory(newCategory, 'expense');
+
+                              setState(() {
+                                _selectedCategory = newCategory;
+                              });
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Category "$newCategory" added!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } else {
+                            setState(() => _selectedCategory = value);
+                          }
+                        },
+                        onWalletChanged: (value) =>
+                            setState(() => _selectedWallet = value),
+                        onRepeatChanged: (value) =>
+                            setState(() => isRepeat = value),
+                        amountController: _expenseController,
+                        descriptionController: _descriptionController,
+                        isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

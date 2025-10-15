@@ -94,250 +94,250 @@ class TransactionDetailPage extends StatelessWidget {
         ],
       ),
       backgroundColor: Colors.grey[200],
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.only(
-              top: 30,
-              left: 16,
-              right: 16,
-              bottom: 40,
-            ),
-            decoration: BoxDecoration(
-              color: isIncome ? Colors.green : Colors.red,
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(30),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'AED ${transaction.amount.toStringAsFixed(2)}',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final isTablet = width >= 600 && width < 1000;
+          final isDesktop = width >= 1000;
+          final imageHeight = isTablet ? 260.0 : (isDesktop ? 320.0 : 200.0);
+
+          return SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.only(
+                        top: 30,
+                        left: 16,
+                        right: 16,
+                        bottom: 40,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isIncome ? Colors.green : Colors.red,
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(30),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        transaction.category,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Date: ${DateFormat.yMMMd().add_jm().format(transaction.date)}',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
-
-          // Info Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildInfoColumn(
-                        "Type",
-                        transaction.type[0].toUpperCase() +
-                            transaction.type.substring(1),
-                      ), // Capitalize type
-                      _buildInfoColumn("Category", transaction.category),
-                      _buildInfoColumn(
-                        "Wallet",
-                        transaction.wallet,
-                      ), // Better label
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Description
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Description",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        transaction.description.isNotEmpty
-                            ? transaction.description
-                            : 'No description provided',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-
-          // Image Section
-          if (transaction.imagePath != null &&
-              transaction.imagePath!.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: FutureBuilder<bool>(
-                future: _checkImageExists(transaction.imagePath!),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasData && snapshot.data == true) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            "Attachment",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              color: Colors.grey[700],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  'AED ${transaction.amount.toStringAsFixed(2)}',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  transaction.category,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Date: ${DateFormat.yMMMd().add_jm().format(transaction.date)}',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FullScreenImageViewer(
-                                  imagePath: transaction.imagePath!,
+                          const SizedBox(height: 30),
+                        ],
+                      ),
+                    ),
+
+                    // Info Section
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildInfoColumn(
+                                  "Type",
+                                  transaction.type[0].toUpperCase() +
+                                      transaction.type.substring(1),
                                 ),
+                                _buildInfoColumn(
+                                  "Category",
+                                  transaction.category,
+                                ),
+                                _buildInfoColumn("Wallet", transaction.wallet),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Description
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Description",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  transaction.description.isNotEmpty
+                                      ? transaction.description
+                                      : 'No description provided',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+
+                    // Image Section
+                    if (transaction.imagePath != null &&
+                        transaction.imagePath!.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: FutureBuilder<bool>(
+                          future: _checkImageExists(transaction.imagePath!),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            if (snapshot.hasData && snapshot.data == true) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8.0),
+                                    child: Text(
+                                      "Attachment",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: isTablet ? 16 : 14,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FullScreenImageViewer(
+                                          imagePath: transaction.imagePath!,
+                                        ),
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.file(
+                                        File(transaction.imagePath!),
+                                        height: imageHeight,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            return const Text(
+                              'Attachment not available',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
                               ),
                             );
                           },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              File(transaction.imagePath!),
-                              height: 200,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  color: Colors.grey[300],
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.broken_image,
-                                        size: 50,
-                                        color: Colors.grey,
-                                      ),
-                                      Text('Image not available'),
-                                    ],
-                                  ),
-                                );
-                              },
+                        ),
+                      ),
+                    ] else
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'No attachment',
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                      ),
+
+                    const SizedBox(height: 20),
+
+                    // Edit Button
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isIncome
+                                ? Colors.green
+                                : Colors.red,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditTransactionPage(
+                                transaction: transaction,
+                                transactionId: transactionId,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            "Edit Transaction",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: isTablet ? 18 : 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    );
-                  } else {
-                    return const Text(
-                      'Attachment not available',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
-                    );
-                  }
-                },
-              ),
-            ),
-          ] else
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'No attachment',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ),
-
-          const Spacer(),
-
-          // Edit Button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isIncome ? Colors.green : Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditTransactionPage(
-                        transaction: transaction,
-                        transactionId: transactionId,
                       ),
                     ),
-                  );
-                },
-                child: Text(
-                  "Edit Transaction",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

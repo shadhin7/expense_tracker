@@ -49,6 +49,8 @@ dependencies:
   cloud_firestore: ^4.8.0
   firebase_auth: ^4.6.0         # optional but recommended
   firebase_storage: ^11.0.0
+  cached_network_image: ^3.4.1
+  http: ^1.5.0
 
 flutter_native_splash:
   color: "#FFFFFF"

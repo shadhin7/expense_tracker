@@ -57,8 +57,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text('Manage Categories'),
         bottom: TabBar(
+          indicatorColor: Colors.blue,
+          unselectedLabelColor: Colors.blueGrey,
+          labelColor: Colors.blue,
           controller: _tabController,
           tabs: const [
             Tab(text: 'Expense'),
@@ -100,6 +104,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage>
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: type == 'expense'
+                          ? Colors.red
+                          : Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: () => _addCategory(type),
                     child: const Text('Add'),
                   ),

@@ -132,6 +132,9 @@ class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
                     ),
             ),
             TabBar(
+              splashFactory: NoSplash.splashFactory,
+              // ignore: deprecated_member_use
+              overlayColor: MaterialStateProperty.all(Colors.transparent),
               dividerHeight: 0,
               controller: _tabController,
               labelColor: Colors.lightBlue,

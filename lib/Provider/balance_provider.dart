@@ -1,13 +1,11 @@
-// balance_provider.dart - FIXED VERSION
-// ignore_for_file: use_build_context_synchronously
-
-import 'dart:async';
+// balance_provider.dart - FINAL VERSION
 import 'package:expense_track/models/tansaction_entry.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
+
 import '../services/firestore_service.dart';
 
 class BalanceProvider with ChangeNotifier {
@@ -16,7 +14,6 @@ class BalanceProvider with ChangeNotifier {
   double _totalExpense = 0;
   List<TransactionEntry> _transactions = [];
   String? _currentUserId;
-  StreamSubscription? _monthlySubscription; // Add this
 
   final FirestoreService _firestoreService = FirestoreService();
 
@@ -29,35 +26,30 @@ class BalanceProvider with ChangeNotifier {
   String get formattedTotalIncome => formatAmount(_totalIncome);
   String get formattedTotalExpense => formatAmount(_totalExpense);
 
-  @override
-  void dispose() {
-    _monthlySubscription?.cancel(); // Important: cancel subscription
-    super.dispose();
+  BalanceProvider() {
+    _initializeUserData();
+  }
+
+  // Initialize with user data
+  void _initializeUserData() {
+    // This will be called when the app starts
+    // We'll manually check for current user in build methods
   }
 
   // Call this method when you know the user is logged in
   void setUser(String userId) {
-    if (_currentUserId != userId) {
-      _currentUserId = userId;
-      _cancelCurrentSubscription(); // Cancel any existing subscription
-      _loadCurrentMonthData();
-    }
+    _currentUserId = userId;
+    _loadCurrentMonthData();
   }
 
   // Clear data when user logs out
   void clearUser() {
-    _cancelCurrentSubscription(); // Cancel subscription
     _currentUserId = null;
     _balance = 0;
     _totalIncome = 0;
     _totalExpense = 0;
     _transactions = [];
     notifyListeners();
-  }
-
-  void _cancelCurrentSubscription() {
-    _monthlySubscription?.cancel();
-    _monthlySubscription = null;
   }
 
   String _getMonthKey(DateTime date) {
@@ -88,8 +80,12 @@ class BalanceProvider with ChangeNotifier {
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
 
-    // Don't update local state here - let the stream handle it
-    // This ensures consistency across devices
+    if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
+      _transactions.add(TransactionEntry(tx.id!, tx));
+      _balance += tx.amount;
+      _totalIncome += tx.amount;
+      notifyListeners();
+    }
   }
 
   // Add Expense with Firestore
@@ -116,14 +112,19 @@ class BalanceProvider with ChangeNotifier {
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
 
-    // Don't update local state here - let the stream handle it
+    if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
+      _transactions.add(TransactionEntry(tx.id!, tx));
+      _balance -= tx.amount;
+      _totalExpense += tx.amount;
+      notifyListeners();
+    }
   }
 
   // Delete Transaction with Firestore
   Future<void> deleteTransaction(String transactionId) async {
     if (_currentUserId == null) return;
     await _firestoreService.deleteTransaction(transactionId, _currentUserId!);
-    // Stream will automatically update
+    _loadCurrentMonthData();
   }
 
   // Edit Transaction with Firestore
@@ -143,6 +144,21 @@ class BalanceProvider with ChangeNotifier {
     );
     if (existingTransaction == null) return;
 
+    final wasIncome = existingTransaction.isIncome;
+    final isCurrentMonth =
+        _getMonthKey(existingTransaction.date) == _getMonthKey(DateTime.now());
+
+    // Revert old values if in current month
+    if (isCurrentMonth) {
+      if (wasIncome) {
+        _balance -= existingTransaction.amount;
+        _totalIncome -= existingTransaction.amount;
+      } else {
+        _balance += existingTransaction.amount;
+        _totalExpense -= existingTransaction.amount;
+      }
+    }
+
     // Create updated transaction
     final updated = TransactionModel(
       id: transactionId,
@@ -157,7 +173,26 @@ class BalanceProvider with ChangeNotifier {
     );
 
     await _firestoreService.updateTransaction(updated, _currentUserId!);
-    // Stream will automatically update
+
+    if (isCurrentMonth) {
+      if (wasIncome) {
+        _balance += newAmount;
+        _totalIncome += newAmount;
+      } else {
+        _balance -= newAmount;
+        _totalExpense += newAmount;
+      }
+
+      // Update transaction in local list
+      final index = _transactions.indexWhere(
+        (entry) => entry.key == transactionId,
+      );
+      if (index != -1) {
+        _transactions[index] = TransactionEntry(transactionId, updated);
+      }
+    }
+
+    notifyListeners();
   }
 
   // Load Current Month Data
@@ -172,67 +207,42 @@ class BalanceProvider with ChangeNotifier {
     _loadMonthData(selectedDate);
   }
 
-  // FIXED: Load Month Data with proper stream management
+  // Load Month Data
   void _loadMonthData(DateTime targetDate) {
-    if (_currentUserId == null) {
-      return;
-    }
-
-    // Cancel any existing subscription
-    _cancelCurrentSubscription();
+    if (_currentUserId == null) return;
 
     final monthKey = _getMonthKey(targetDate);
 
-    // Clear data immediately
     _balance = 0;
     _totalIncome = 0;
     _totalExpense = 0;
     _transactions = [];
-    notifyListeners(); // Notify that we're clearing data
 
-    // Set up new subscription
-    _monthlySubscription = _firestoreService
+    // Listen to Firestore stream for this month
+    _firestoreService
         .getMonthlyTransactionsStream(monthKey, _currentUserId!)
-        .listen(
-          (transactions) {
-            // Reset calculations
-            double newBalance = 0;
-            double newTotalIncome = 0;
-            double newTotalExpense = 0;
-            List<TransactionEntry> newTransactions = [];
+        .listen((transactions) {
+          _balance = 0;
+          _totalIncome = 0;
+          _totalExpense = 0;
+          _transactions = [];
 
-            // Calculate new values
-            for (final tx in transactions) {
-              newTransactions.add(TransactionEntry(tx.id!, tx));
-              if (tx.isIncome) {
-                newBalance += tx.amount;
-                newTotalIncome += tx.amount;
-              } else {
-                newBalance -= tx.amount;
-                newTotalExpense += tx.amount;
-              }
+          for (final tx in transactions) {
+            _transactions.add(TransactionEntry(tx.id!, tx));
+            if (tx.isIncome) {
+              _balance += tx.amount;
+              _totalIncome += tx.amount;
+            } else {
+              _balance -= tx.amount;
+              _totalExpense += tx.amount;
             }
+          }
 
-            // Update state only if values changed
-            if (_balance != newBalance ||
-                _totalIncome != newTotalIncome ||
-                _totalExpense != newTotalExpense ||
-                _transactions.length != newTransactions.length) {
-              _balance = newBalance;
-              _totalIncome = newTotalIncome;
-              _totalExpense = newTotalExpense;
-              _transactions = newTransactions;
-
-              notifyListeners();
-            }
-          },
-          onError: (error) {
-            notifyListeners();
-          },
-        );
+          notifyListeners();
+        });
   }
 
-  // Stream Methods (unchanged)
+  // Stream Methods
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(String monthKey) {
     if (_currentUserId == null) return Stream.value([]);
     return _firestoreService.getMonthlyTransactionsStream(
