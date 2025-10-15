@@ -382,7 +382,7 @@ class _IncomePageState extends State<IncomePage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading to cloud...',
+                          'Uploading Reciept...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

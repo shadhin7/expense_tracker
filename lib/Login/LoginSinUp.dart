@@ -1,9 +1,9 @@
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/screens/Home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../screens/home_page.dart'; // Import your home page
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);

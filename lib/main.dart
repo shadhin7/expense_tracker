@@ -1,6 +1,6 @@
 import 'package:expense_track/Login/Login.dart';
 import 'package:expense_track/Provider/category_provider.dart';
-import 'package:expense_track/screens/home_page.dart';
+import 'package:expense_track/screens/Home_page.dart';
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';

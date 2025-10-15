@@ -367,7 +367,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading to cloud...',
+                          'Uploading Reciept...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

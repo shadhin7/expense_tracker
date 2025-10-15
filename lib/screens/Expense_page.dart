@@ -374,7 +374,7 @@ class _ExpensePageState extends State<ExpensePage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading to cloud...',
+                          'Uploading Reciept...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

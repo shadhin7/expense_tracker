@@ -1,8 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/screens/Image_page.dart';
 import 'package:expense_track/screens/edit_page.dart';
-import 'package:expense_track/screens/image_page.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
