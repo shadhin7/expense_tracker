@@ -47,7 +47,7 @@ class _HomePageState extends State<HomePage> {
     final mq = MediaQuery.of(context);
     final width = mq.size.width;
     // Breakpoints
-    const mobileMax = 600.0;
+    const mobileMax = 700.0;
     const tabletMax = 1024.0;
 
     // Responsive sizing helpers
@@ -225,6 +225,7 @@ class _HomePageState extends State<HomePage> {
                     minWidth: 0,
                   ),
                   child: Card(
+                    color: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

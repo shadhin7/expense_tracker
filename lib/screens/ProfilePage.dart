@@ -15,6 +15,12 @@ class ProfilePage extends StatelessWidget {
         authService.currentUser?.displayName ?? userEmail.split('@')[0];
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Profile'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 0,
+      ),
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {

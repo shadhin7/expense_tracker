@@ -93,7 +93,7 @@ class TransactionDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -234,10 +234,11 @@ class TransactionDetailPage extends StatelessWidget {
                           future: _checkImageExists(transaction.imagePath!),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
-                                ConnectionState.waiting)
+                                ConnectionState.waiting) {
                               return const Center(
                                 child: CircularProgressIndicator(),
                               );
+                            }
                             if (snapshot.hasData && snapshot.data == true) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

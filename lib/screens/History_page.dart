@@ -41,15 +41,11 @@ class _HistoryState extends State<History> {
     final categoryProvider = context.read<CategoryProvider>();
     final defaultCategories = [
       'Food',
-      'Transport',
       'Shopping',
-      'Entertainment',
       'Bills',
       'Healthcare',
-      'Education',
       'Salary',
       'Bonus',
-      'Investment',
       'Other',
     ];
 
@@ -193,7 +189,11 @@ class _HistoryState extends State<History> {
       label: Text(label),
       onDeleted: onDelete,
       backgroundColor: Colors.blue.shade50,
-      labelStyle: const TextStyle(fontSize: 12),
+      labelStyle: const TextStyle(fontSize: 12, color: Colors.blue),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.0), // More curved
+        side: BorderSide(color: Colors.blue.shade200, width: 1.0),
+      ),
     );
   }
 
@@ -285,6 +285,7 @@ class _HistoryState extends State<History> {
 
                   if (_showFilters)
                     Card(
+                      color: Colors.white,
                       margin: EdgeInsets.symmetric(
                         horizontal: horizontalPadding,
                         vertical: 8,
@@ -463,6 +464,77 @@ class _HistoryState extends State<History> {
                         ),
                       ),
                     ),
+                  Card(
+                    color: Colors.white,
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              Text(
+                                'Income',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'AED ${provider.formattedTotalIncome}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              Text(
+                                'Expense',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'AED ${provider.formattedTotalExpense}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              Text(
+                                'Balance',
+                                style: TextStyle(
+                                  color: provider.balance >= 0
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'AED ${provider.formattedBalance}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                   // Transactions list
                   Expanded(
