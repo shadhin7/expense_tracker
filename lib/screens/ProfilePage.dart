@@ -110,7 +110,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                           _buildMenuItem(
                             icon: Icons.settings_outlined,
-                            title: 'SettingscURRENCY',
+                            title: 'Settings',
                             onTap: () {},
                           ),
                           _buildMenuItem(
