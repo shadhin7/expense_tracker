@@ -48699,7 +48699,7 @@ h=A.ba(b,a0?36:28,b)
 g=s/2
 f=c.a
 e=t.p
-d=A.b([f.zD(B.lf,new A.an8(),"Account"),f.zD(B.K8,new A.an9(),"SettingscURRENCY"),f.zD(B.K7,new A.ana(),"Export Data"),f.zD(B.K5,new A.anb(a2),"Manage Categories"),B.UM],e)
+d=A.b([f.zD(B.lf,new A.an8(),"Account"),f.zD(B.K8,new A.an9(),"Settings"),f.zD(B.K7,new A.ana(),"Export Data"),f.zD(B.K5,new A.anb(a2),"Manage Categories"),B.UM],e)
 if(!a0)d.push(B.bV)
 d.push(f.Qu(B.le,!0,new A.anc(c.d,a2),"Logout"))
 d.push(A.ba(b,a0?32:20,b))
