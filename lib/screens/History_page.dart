@@ -168,14 +168,10 @@ class _HistoryState extends State<History> {
             hint: Text('All $label'),
             items: [
               DropdownMenuItem<String>(value: null, child: Text('All $label')),
-              ...items
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item),
-                    ),
-                  )
-                  .toList(),
+              ...items.map(
+                (item) =>
+                    DropdownMenuItem<String>(value: item, child: Text(item)),
+              ),
             ],
             onChanged: onChanged,
           ),
