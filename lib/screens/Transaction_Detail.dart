@@ -29,58 +29,58 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   final CloudinaryService _cloudinaryService = CloudinaryService();
   bool _isSaving = false;
 
-  void _showImageOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Receipt Options',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            if (widget.transaction.receiptImageUrl != null) ...[
-              ListTile(
-                leading: const Icon(Icons.download, color: Colors.orange),
-                title: Text('Save to Device', style: GoogleFonts.poppins()),
-                onTap: () {
-                  Navigator.pop(context);
-                  _saveImageToDevice();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.visibility, color: Colors.blue),
-                title: Text('View Full Screen', style: GoogleFonts.poppins()),
-                onTap: () {
-                  Navigator.pop(context);
-                  _viewFullScreen();
-                },
-              ),
-              const Divider(),
-            ],
-            ListTile(
-              leading: const Icon(Icons.info, color: Colors.grey),
-              title: Text(
-                'Receipt management available in edit page',
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToEditPage();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // void _showImageOptions() {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     builder: (context) => SafeArea(
+  //       child: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           Padding(
+  //             padding: const EdgeInsets.all(16.0),
+  //             child: Text(
+  //               'Receipt Options',
+  //               style: GoogleFonts.poppins(
+  //                 fontSize: 18,
+  //                 fontWeight: FontWeight.w600,
+  //               ),
+  //             ),
+  //           ),
+  //           if (widget.transaction.receiptImageUrl != null) ...[
+  //             ListTile(
+  //               leading: const Icon(Icons.download, color: Colors.orange),
+  //               title: Text('Save to Device', style: GoogleFonts.poppins()),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 _saveImageToDevice();
+  //               },
+  //             ),
+  //             ListTile(
+  //               leading: const Icon(Icons.visibility, color: Colors.blue),
+  //               title: Text('View Full Screen', style: GoogleFonts.poppins()),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 _viewFullScreen();
+  //               },
+  //             ),
+  //             const Divider(),
+  //           ],
+  //           ListTile(
+  //             leading: const Icon(Icons.info, color: Colors.grey),
+  //             title: Text(
+  //               'Receipt management available in edit page',
+  //               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+  //             ),
+  //             onTap: () {
+  //               Navigator.pop(context);
+  //               _navigateToEditPage();
+  //             },
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Future<void> _saveImageToDevice() async {
     if (widget.transaction.receiptImageUrl == null) return;
@@ -194,12 +194,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ),
 
           // More Options Button
-          IconButton(
-            color: Colors.white,
-            onPressed: _showImageOptions,
-            icon: Icon(Icons.more_vert),
-            tooltip: 'More Options',
-          ),
+          // IconButton(
+          //   color: Colors.white,
+          //   onPressed: _showImageOptions,
+          //   icon: Icon(Icons.more_vert),
+          //   tooltip: 'More Options',
+          // ),
 
           // Delete Button
           IconButton(
@@ -330,29 +330,36 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildInfoColumn(
-                                  "Type",
-                                  widget.transaction.type[0].toUpperCase() +
-                                      widget.transaction.type.substring(1),
-                                ),
-                                _buildInfoColumn(
-                                  "Category",
-                                  widget.transaction.category,
-                                ),
-                                _buildInfoColumn(
-                                  "Wallet",
-                                  widget.transaction.wallet,
-                                ),
-                              ],
+                          PhysicalModel(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            shadowColor: Colors.black,
+                            elevation: 1,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildInfoColumn(
+                                    "Type",
+                                    widget.transaction.type[0].toUpperCase() +
+                                        widget.transaction.type.substring(1),
+                                  ),
+                                  _buildInfoColumn(
+                                    "Category",
+                                    widget.transaction.category,
+                                  ),
+                                  _buildInfoColumn(
+                                    "Wallet",
+                                    widget.transaction.wallet,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
@@ -414,37 +421,6 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                                       color: Colors.grey[700],
                                     ),
                                   ),
-                                  if (!_isSaving)
-                                    InkWell(
-                                      onTap: _saveImageToDevice,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.download,
-                                            size: 18,
-                                            color: Colors.blue,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Save',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.blue,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
@@ -563,28 +539,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 ),
               ),
             ),
+
             // Overlay with save button
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                padding: EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: _isSaving
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Icon(Icons.download, color: Colors.white, size: 16),
-              ),
-            ),
           ],
         ),
       ),

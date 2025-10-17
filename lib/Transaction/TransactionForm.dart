@@ -150,7 +150,7 @@ class TransactionForm extends StatelessWidget {
 
                 // 📎 Image Attachment Section
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Image upload button
                     TextButton.icon(
@@ -292,7 +292,7 @@ class TransactionForm extends StatelessWidget {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: buttonPadding,
                   ),
