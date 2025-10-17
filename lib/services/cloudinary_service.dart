@@ -10,7 +10,7 @@ import 'dart:io'; // For mobile
 class CloudinaryService {
   // Your credentials
   static const String _cloudName = 'defb6qmew';
-  static const String _apiKey = '396116621233937';
+  // static const String _apiKey = '396116621233937';
   static const String _uploadPreset = 'expene_tracker';
 
   // Upload image to Cloudinary (Web & Mobile compatible)
@@ -21,8 +21,6 @@ class CloudinaryService {
   }) async {
     try {
       print('Starting Cloudinary upload for user: $userId');
-
-      final url = 'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
 
       // For web, we need to handle file differently
       if (_isWeb()) {

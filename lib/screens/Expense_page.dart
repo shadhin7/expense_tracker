@@ -82,11 +82,11 @@ class _ExpensePageState extends State<ExpensePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
-            child: Text('📷 Take Photo'),
+            child: Text('Photo'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
-            child: Text('🖼️ Choose from Gallery'),
+            child: Text('Choose from Gallery'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 0), // Cancel
@@ -128,7 +128,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Receipt uploaded to cloud!'),
+            content: Text('Receipt uploaded !'),
             backgroundColor: Colors.green,
           ),
         );

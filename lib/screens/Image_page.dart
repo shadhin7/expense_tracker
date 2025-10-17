@@ -9,6 +9,7 @@ class FullScreenImageViewer extends StatelessWidget {
   final bool isNetworkImage;
 
   const FullScreenImageViewer({
+    super.key,
     required this.imagePath,
     this.isNetworkImage = false,
   });

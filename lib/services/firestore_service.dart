@@ -1,4 +1,6 @@
 // services/firestore_service.dart - FULLY UPDATED
+// ignore_for_file: unnecessary_cast
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expense_track/models/transaction_model.dart';
 
@@ -252,11 +254,7 @@ class FirestoreService {
         })
         .map((snapshot) {
           final months = snapshot.docs
-              .map(
-                (doc) =>
-                    (doc.data() as Map<String, dynamic>)['monthYear']
-                        as String?,
-              )
+              .map((doc) => (doc.data())['monthYear'] as String?)
               .where((month) => month != null)
               .cast<String>()
               .toSet()
