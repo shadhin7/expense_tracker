@@ -11,6 +11,7 @@ class TransactionModel {
   final String wallet;
   final String monthYear;
   final String? receiptImageUrl; // ONLY CLOUDINARY URL
+  final DateTime? createdAt;
 
   TransactionModel({
     required this.id,
@@ -22,17 +23,18 @@ class TransactionModel {
     required this.description,
     required this.wallet,
     this.receiptImageUrl, // ONLY Cloudinary URL
+    this.createdAt,
   }) : monthYear = '${date.year}-${date.month.toString().padLeft(2, '0')}';
 
   bool get isIncome => type.toLowerCase() == 'income';
 
-  // ADD THIS: Expense checker
+  // Expense checker
   bool get isExpense => type.toLowerCase() == 'expense';
 
-  // UPDATED: Only Cloudinary URL, no local fallback
+  // ONLY Cloudinary URL - no local fallback
   String? get displayImage => receiptImageUrl;
 
-  // UPDATED: Check only Cloudinary URL
+  // Check only Cloudinary URL
   bool get hasImage => receiptImageUrl != null && receiptImageUrl!.isNotEmpty;
 
   // Convert to Map for Firestore
@@ -48,14 +50,16 @@ class TransactionModel {
       'wallet': wallet,
       'monthYear': monthYear,
       'isIncome': isIncome,
-      'isExpense': isExpense, // ADD THIS
+      'isExpense': isExpense,
       'receiptImageUrl': receiptImageUrl, // ONLY Cloudinary URL
-      // REMOVED: localImagePath
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 
-  // Create from Firestore document
+  // Create from Firestore document - FIXED VERSION
   factory TransactionModel.fromMap(
     Map<String, dynamic> map,
     String documentId,
@@ -65,22 +69,28 @@ class TransactionModel {
       userId: map['userId'] ?? '',
       amount: (map['amount'] ?? 0.0).toDouble(),
       type: map['type'] ?? '',
-      date: _parseDate(map['date']),
+      date:
+          _parseDate(map['date']) ??
+          DateTime.now(), // FIX: Provide default value
       category: map['category'] ?? '',
       description: map['description'] ?? '',
       wallet: map['wallet'] ?? '',
       receiptImageUrl: map['receiptImageUrl'], // ONLY Cloudinary URL
-      // REMOVED: localImagePath
+      createdAt: _parseDate(map['createdAt']), // This can stay nullable
     );
   }
 
-  static DateTime _parseDate(dynamic dateField) {
+  static DateTime? _parseDate(dynamic dateField) {
+    if (dateField == null) return null;
+
     if (dateField is Timestamp) {
       return dateField.toDate();
     } else if (dateField is int) {
       return DateTime.fromMillisecondsSinceEpoch(dateField);
+    } else if (dateField is String) {
+      return DateTime.tryParse(dateField);
     } else {
-      return DateTime.now();
+      return null;
     }
   }
 
@@ -94,7 +104,7 @@ class TransactionModel {
     String? description,
     String? wallet,
     String? receiptImageUrl,
-    // REMOVED: localImagePath
+    DateTime? createdAt,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -106,12 +116,32 @@ class TransactionModel {
       description: description ?? this.description,
       wallet: wallet ?? this.wallet,
       receiptImageUrl: receiptImageUrl ?? this.receiptImageUrl,
-      // REMOVED: localImagePath
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'TransactionModel(id: $id, amount: $amount, type: $type, cloudImage: $receiptImageUrl)';
+    return 'TransactionModel(id: $id, amount: $amount, type: $type, category: $category, cloudImage: $receiptImageUrl)';
+  }
+
+  // Helper method to check if this is a valid transaction
+  bool get isValid {
+    return id.isNotEmpty &&
+        userId.isNotEmpty &&
+        amount > 0 &&
+        type.isNotEmpty &&
+        category.isNotEmpty &&
+        wallet.isNotEmpty;
+  }
+
+  // Helper method for display
+  String get formattedDate {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  // Helper method for amount display
+  String get formattedAmount {
+    return 'AED ${amount.toStringAsFixed(2)}';
   }
 }

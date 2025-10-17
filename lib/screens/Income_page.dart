@@ -3,6 +3,8 @@
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/category_provider.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
+import 'package:expense_track/services/cloudinary_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,15 +18,18 @@ class IncomePage extends StatefulWidget {
 class _IncomePageState extends State<IncomePage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String? _cloudinaryImageUrl; // ONLY Cloudinary URL
+  String? _cloudinaryImageUrl;
 
   String? _selectedCategory;
   String? _selectedWallet;
   bool isRepeat = false;
   bool _isSubmitting = false;
+  bool _isUploadingImage = false;
 
   final List<String> _defaultCategories = ['Salary', 'Freelance', 'Bonus'];
   final List<String> _wallets = ['Cash', 'Bank', 'Card'];
+
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   @override
   void initState() {
@@ -44,13 +49,22 @@ class _IncomePageState extends State<IncomePage> {
     super.dispose();
   }
 
-  // UPDATED: Image capture methods - ONLY CLOUD OPTIONS
-  void _handleCaptureImage() async {
-    final balanceProvider = Provider.of<BalanceProvider>(
-      context,
-      listen: false,
-    );
+  // Get user ID from Firebase Auth
+  String _getUserId() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+    return user.uid;
+  }
 
+  // Generate temporary transaction ID for upload
+  String _generateTempTransactionId() {
+    return 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  // Image capture methods - Web compatible Cloudinary
+  void _handleCaptureImage() async {
     // Show simplified options dialog - ONLY CLOUD
     final option = await showDialog<int>(
       context: context,
@@ -76,21 +90,32 @@ class _IncomePageState extends State<IncomePage> {
 
     if (option == null || option == 0) return;
 
+    setState(() {
+      _isUploadingImage = true;
+    });
+
     try {
       String? imageUrl;
+      final userId = _getUserId();
 
       switch (option) {
         case 1: // Camera + Cloudinary
-          imageUrl = await balanceProvider.takePhotoAndUpload();
+          imageUrl = await _cloudinaryService.takePhotoAndUpload(
+            userId: userId,
+            transactionId: _generateTempTransactionId(),
+          );
           break;
         case 2: // Gallery + Cloudinary
-          imageUrl = await balanceProvider.pickFromGalleryAndUpload();
+          imageUrl = await _cloudinaryService.pickFromGalleryAndUpload(
+            userId: userId,
+            transactionId: _generateTempTransactionId(),
+          );
           break;
       }
 
       if (imageUrl != null) {
         setState(() {
-          _cloudinaryImageUrl = imageUrl; // Store Cloudinary URL
+          _cloudinaryImageUrl = imageUrl;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,17 +132,21 @@ class _IncomePageState extends State<IncomePage> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isUploadingImage = false;
+      });
     }
   }
 
-  // UPDATED: Remove image method
+  // Remove image method
   void _removeImage() {
     setState(() {
       _cloudinaryImageUrl = null;
     });
   }
 
-  // UPDATED: Submit income with Cloudinary support ONLY
+  // Submit income with Cloudinary support ONLY
   Future<void> _submitIncome(double amount) async {
     if (_isSubmitting) return;
 
@@ -146,13 +175,12 @@ class _IncomePageState extends State<IncomePage> {
     });
 
     try {
-      // UPDATED: Only Cloudinary URL, no local path
       await Provider.of<BalanceProvider>(context, listen: false).addIncome(
         amount,
         _selectedCategory!,
         _descriptionController.text.trim(),
         _selectedWallet!,
-        _cloudinaryImageUrl, // ONLY Cloudinary URL
+        _cloudinaryImageUrl,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -180,7 +208,6 @@ class _IncomePageState extends State<IncomePage> {
   @override
   Widget build(BuildContext context) {
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final balanceProvider = Provider.of<BalanceProvider>(context);
 
     final allCategories = [
       ..._defaultCategories,
@@ -270,8 +297,7 @@ class _IncomePageState extends State<IncomePage> {
                           ),
                           child: TransactionForm(
                             buttonColor: Colors.green,
-                            imagePath:
-                                _cloudinaryImageUrl, // ONLY Cloudinary URL
+                            imagePath: _cloudinaryImageUrl,
                             onCaptureImage: _handleCaptureImage,
                             onRemoveImage: _removeImage,
                             onSubmit: (amount) async =>
@@ -358,8 +384,7 @@ class _IncomePageState extends State<IncomePage> {
                             amountController: _amountController,
                             descriptionController: _descriptionController,
                             isLoading: _isSubmitting,
-                            showImageUploadProgress:
-                                balanceProvider.isUploadingImage,
+                            showImageUploadProgress: _isUploadingImage,
                           ),
                         ),
                       ),
@@ -368,7 +393,7 @@ class _IncomePageState extends State<IncomePage> {
                 ),
               ),
               // Upload progress overlay
-              if (balanceProvider.isUploadingImage)
+              if (_isUploadingImage)
                 Container(
                   color: Colors.black54,
                   child: Center(
@@ -382,7 +407,7 @@ class _IncomePageState extends State<IncomePage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading Reciept...',
+                          'Uploading Receipt...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

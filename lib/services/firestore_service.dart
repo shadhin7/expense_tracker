@@ -1,9 +1,9 @@
-// services/firestore_service.dart - FIXED VERSION
+// services/firestore_service.dart - FULLY UPDATED
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expense_track/models/transaction_model.dart';
 
 class FirestoreService {
-  // Add a new transaction - FIXED
+  // Add a new transaction
   Future<void> addTransaction(
     TransactionModel transaction,
     String userId,
@@ -31,8 +31,37 @@ class FirestoreService {
           .collection('transactions')
           .doc(transaction.id)
           .update(transaction.toMap());
+      print('✅ FirestoreService: Transaction updated successfully');
     } catch (e) {
+      print('❌ FirestoreService: Failed to update transaction: $e');
       throw Exception('Failed to update transaction: $e');
+    }
+  }
+
+  // NEW: Update transaction receipt URL only
+  Future<void> updateTransactionReceipt(
+    String transactionId,
+    String? receiptImageUrl, // Can be null to remove receipt
+  ) async {
+    try {
+      print(
+        '🔄 FirestoreService: Updating receipt for transaction $transactionId',
+      );
+
+      final updateData = <String, dynamic>{
+        'receiptImageUrl': receiptImageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(transactionId)
+          .update(updateData);
+
+      print('✅ FirestoreService: Receipt updated successfully');
+    } catch (e) {
+      print('❌ FirestoreService: Failed to update receipt: $e');
+      throw Exception('Failed to update receipt: $e');
     }
   }
 
@@ -43,7 +72,9 @@ class FirestoreService {
           .collection('transactions')
           .doc(transactionId)
           .delete();
+      print('✅ FirestoreService: Transaction deleted successfully');
     } catch (e) {
+      print('❌ FirestoreService: Failed to delete transaction: $e');
       throw Exception('Failed to delete transaction: $e');
     }
   }
@@ -71,11 +102,12 @@ class FirestoreService {
       }
       return null;
     } catch (e) {
+      print('❌ FirestoreService: Failed to get transaction: $e');
       throw Exception('Failed to get transaction: $e');
     }
   }
 
-  // Stream of last 10 transactions for home page - FIXED
+  // Stream of last 10 transactions for home page
   Stream<List<TransactionModel>> getLast10TransactionsStream(String userId) {
     print('🔍 FirestoreService: Getting last 10 transactions for user $userId');
 
@@ -87,16 +119,14 @@ class FirestoreService {
         .snapshots()
         .handleError((error) {
           print('❌ FirestoreService Error (last10): $error');
-          return Stream<List<TransactionModel>>.value(
-            [],
-          ); // Return empty list on error
+          return Stream<List<TransactionModel>>.value([]);
         })
         .map((snapshot) {
           final transactions = snapshot.docs
               .map((doc) {
                 try {
                   return TransactionModel.fromMap(
-                    doc.data(), // Added type cast
+                    doc.data() as Map<String, dynamic>,
                     doc.id,
                   );
                 } catch (e) {
@@ -115,7 +145,7 @@ class FirestoreService {
         });
   }
 
-  // Stream of monthly transactions for history page - FIXED
+  // Stream of monthly transactions for history page
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(
     String monthYear,
     String userId,
@@ -132,16 +162,14 @@ class FirestoreService {
         .snapshots()
         .handleError((error) {
           print('❌ FirestoreService Error (monthly): $error');
-          return Stream<List<TransactionModel>>.value(
-            [],
-          ); // Return empty list on error
+          return Stream<List<TransactionModel>>.value([]);
         })
         .map((snapshot) {
           final transactions = snapshot.docs
               .map((doc) {
                 try {
                   return TransactionModel.fromMap(
-                    doc.data(), // Added type cast
+                    doc.data() as Map<String, dynamic>,
                     doc.id,
                   );
                 } catch (e) {
@@ -160,7 +188,7 @@ class FirestoreService {
         });
   }
 
-  // Stream of monthly summary for graphs - FIXED
+  // Stream of monthly summary for graphs
   Stream<Map<String, double>> getMonthlySummaryStream(
     String monthYear,
     String userId,
@@ -177,7 +205,6 @@ class FirestoreService {
         .handleError((error) {
           print('❌ FirestoreService Error (summary): $error');
           return Stream<Map<String, double>>.value({
-            // Return empty map on error
             'totalIncome': 0.0,
             'totalExpense': 0.0,
             'balance': 0.0,
@@ -188,7 +215,7 @@ class FirestoreService {
           double totalExpense = 0;
 
           for (final doc in snapshot.docs) {
-            final data = doc.data(); // Added type cast
+            final data = doc.data() as Map<String, dynamic>;
             final amount = (data['amount'] ?? 0.0).toDouble();
             final isIncome = data['isIncome'] ?? false;
 
@@ -210,7 +237,7 @@ class FirestoreService {
         });
   }
 
-  // Stream of available months for filter dropdown - FIXED
+  // Stream of available months for filter dropdown
   Stream<List<String>> getAvailableMonthsStream(String userId) {
     print('🔍 FirestoreService: Getting available months for user $userId');
 
@@ -221,13 +248,15 @@ class FirestoreService {
         .snapshots()
         .handleError((error) {
           print('❌ FirestoreService Error (months): $error');
-          return Stream<List<String>>.value([]); // Return empty list on error
+          return Stream<List<String>>.value([]);
         })
         .map((snapshot) {
           final months = snapshot.docs
               .map(
-                (doc) => (doc.data())['monthYear'] as String?,
-              ) // Added type cast
+                (doc) =>
+                    (doc.data() as Map<String, dynamic>)['monthYear']
+                        as String?,
+              )
               .where((month) => month != null)
               .cast<String>()
               .toSet()

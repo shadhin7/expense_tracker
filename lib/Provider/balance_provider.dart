@@ -1,10 +1,11 @@
-// balance_provider.dart - UPDATED WITH CLOUDINARY ONLY
+// balance_provider.dart - FULLY UPDATED
 import 'package:expense_track/models/tansaction_entry.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
@@ -36,8 +37,12 @@ class BalanceProvider with ChangeNotifier {
 
   // Initialize with user data
   void _initializeUserData() {
-    // This will be called when the app starts
-    // We'll manually check for current user in build methods
+    // Set user from Firebase Auth if available
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _currentUserId = user.uid;
+      _loadCurrentMonthData();
+    }
   }
 
   // Call this method when you know the user is logged in
@@ -60,6 +65,9 @@ class BalanceProvider with ChangeNotifier {
   String _getMonthKey(DateTime date) {
     return DateFormat('yyyy-MM').format(date);
   }
+
+  // Get current user ID
+  String? get currentUserId => _currentUserId;
 
   // UPDATED: Take photo with camera and upload to Cloudinary (ONLY CLOUD)
   Future<String?> takePhotoAndUpload() async {
@@ -104,8 +112,6 @@ class BalanceProvider with ChangeNotifier {
       _setUploadingState(false);
     }
   }
-
-  // REMOVED: getLocalImagePath() - No local storage
 
   // UPDATED: Add Income with Cloudinary support only
   Future<void> addIncome(
@@ -157,7 +163,6 @@ class BalanceProvider with ChangeNotifier {
       category: category,
       description: description,
       wallet: wallet,
-
       userId: _currentUserId!,
       receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
     );
@@ -213,7 +218,6 @@ class BalanceProvider with ChangeNotifier {
       category: newCategory,
       description: newDescription,
       wallet: newWallet,
-
       userId: _currentUserId!,
       receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
     );
@@ -241,7 +245,59 @@ class BalanceProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ADD THIS HELPER METHOD
+  // NEW: Update transaction receipt URL
+  Future<void> updateTransactionReceipt(
+    String transactionId,
+    String? receiptImageUrl, // Can be null to remove receipt
+  ) async {
+    if (_currentUserId == null) return;
+
+    try {
+      // First, get the existing transaction
+      final existingTransaction = await _firestoreService.getTransaction(
+        transactionId,
+        _currentUserId!,
+      );
+
+      if (existingTransaction == null) return;
+
+      // Create updated transaction with new receipt URL
+      final updated = TransactionModel(
+        id: transactionId,
+        amount: existingTransaction.amount,
+        type: existingTransaction.type,
+        date: existingTransaction.date,
+        category: existingTransaction.category,
+        description: existingTransaction.description,
+        wallet: existingTransaction.wallet,
+        userId: _currentUserId!,
+        receiptImageUrl: receiptImageUrl, // Updated Cloudinary URL
+      );
+
+      // Update in Firestore
+      await _firestoreService.updateTransaction(updated, _currentUserId!);
+
+      // Update in local state if it's in current month
+      final isCurrentMonth =
+          _getMonthKey(existingTransaction.date) ==
+          _getMonthKey(DateTime.now());
+
+      if (isCurrentMonth) {
+        final index = _transactions.indexWhere(
+          (entry) => entry.key == transactionId,
+        );
+        if (index != -1) {
+          _transactions[index] = TransactionEntry(transactionId, updated);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error updating transaction receipt: $e');
+      throw Exception('Failed to update receipt: $e');
+    }
+  }
+
+  // Helper method
   void _setUploadingState(bool uploading) {
     _isUploadingImage = uploading;
     notifyListeners();
@@ -327,7 +383,7 @@ class BalanceProvider with ChangeNotifier {
   }
 }
 
-// Format helper (unchanged)
+// Format helper
 String formatAmount(double amount) {
   if (amount >= 10000) {
     return "${(amount / 1000).toStringAsFixed(1)}k";
@@ -336,7 +392,7 @@ String formatAmount(double amount) {
   }
 }
 
-// Month picker (unchanged)
+// Month picker
 void pickMonth(BuildContext context) async {
   final selected = await showMonthPicker(
     context: context,

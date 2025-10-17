@@ -4,13 +4,14 @@ import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/screens/Image_page.dart';
 import 'package:expense_track/screens/edit_page.dart';
 import 'package:expense_track/models/transaction_model.dart';
+import 'package:expense_track/services/cloudinary_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class TransactionDetailPage extends StatelessWidget {
+class TransactionDetailPage extends StatefulWidget {
   final TransactionModel transaction;
   final String transactionId;
 
@@ -21,8 +22,143 @@ class TransactionDetailPage extends StatelessWidget {
   });
 
   @override
+  State<TransactionDetailPage> createState() => _TransactionDetailPageState();
+}
+
+class _TransactionDetailPageState extends State<TransactionDetailPage> {
+  final CloudinaryService _cloudinaryService = CloudinaryService();
+  bool _isSaving = false;
+
+  void _showImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Receipt Options',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (widget.transaction.receiptImageUrl != null) ...[
+              ListTile(
+                leading: const Icon(Icons.download, color: Colors.orange),
+                title: Text('Save to Device', style: GoogleFonts.poppins()),
+                onTap: () {
+                  Navigator.pop(context);
+                  _saveImageToDevice();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.visibility, color: Colors.blue),
+                title: Text('View Full Screen', style: GoogleFonts.poppins()),
+                onTap: () {
+                  Navigator.pop(context);
+                  _viewFullScreen();
+                },
+              ),
+              const Divider(),
+            ],
+            ListTile(
+              leading: const Icon(Icons.info, color: Colors.grey),
+              title: Text(
+                'Receipt management available in edit page',
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToEditPage();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveImageToDevice() async {
+    if (widget.transaction.receiptImageUrl == null) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final fileName =
+          'receipt_${widget.transactionId}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.jpg';
+
+      final success = await _cloudinaryService.saveImageToDevice(
+        widget.transaction.receiptImageUrl!,
+        fileName,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Receipt saved to device!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save receipt. Please check permissions.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving receipt: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
+  void _viewFullScreen() {
+    if (widget.transaction.receiptImageUrl != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FullScreenImageViewer(
+            imagePath: widget.transaction.receiptImageUrl!,
+            isNetworkImage: true,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToEditPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditTransactionPage(
+          transaction: widget.transaction,
+          transactionId: widget.transactionId,
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isIncome = transaction.isIncome;
+    final isIncome = widget.transaction.isIncome;
 
     return Scaffold(
       appBar: AppBar(
@@ -39,6 +175,33 @@ class TransactionDetailPage extends StatelessWidget {
         ),
         leading: const BackButton(color: Colors.white),
         actions: [
+          // Save to Device Button - Only show if receipt exists
+          if (widget.transaction.receiptImageUrl != null)
+            IconButton(
+              color: Colors.white,
+              onPressed: _isSaving ? null : _saveImageToDevice,
+              icon: _isSaving
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(Icons.download),
+              tooltip: 'Save to Device',
+            ),
+
+          // More Options Button
+          IconButton(
+            color: Colors.white,
+            onPressed: _showImageOptions,
+            icon: Icon(Icons.more_vert),
+            tooltip: 'More Options',
+          ),
+
+          // Delete Button
           IconButton(
             color: Colors.white,
             onPressed: () async {
@@ -70,7 +233,7 @@ class TransactionDetailPage extends StatelessWidget {
                   await Provider.of<BalanceProvider>(
                     context,
                     listen: false,
-                  ).deleteTransaction(transactionId);
+                  ).deleteTransaction(widget.transactionId);
 
                   Navigator.pop(context);
 
@@ -91,6 +254,7 @@ class TransactionDetailPage extends StatelessWidget {
               }
             },
             icon: const Icon(Icons.delete),
+            tooltip: 'Delete Transaction',
           ),
         ],
       ),
@@ -129,7 +293,7 @@ class TransactionDetailPage extends StatelessWidget {
                             child: Column(
                               children: [
                                 Text(
-                                  'AED ${transaction.amount.toStringAsFixed(2)}',
+                                  'AED ${widget.transaction.amount.toStringAsFixed(2)}',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 32,
@@ -138,7 +302,7 @@ class TransactionDetailPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  transaction.category,
+                                  widget.transaction.category,
                                   style: GoogleFonts.poppins(
                                     color: Colors.white70,
                                     fontSize: 16,
@@ -147,7 +311,7 @@ class TransactionDetailPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Date: ${DateFormat.yMMMd().add_jm().format(transaction.date)}',
+                                  'Date: ${DateFormat.yMMMd().add_jm().format(widget.transaction.date)}',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white70,
                                     fontSize: 12,
@@ -177,14 +341,17 @@ class TransactionDetailPage extends StatelessWidget {
                               children: [
                                 _buildInfoColumn(
                                   "Type",
-                                  transaction.type[0].toUpperCase() +
-                                      transaction.type.substring(1),
+                                  widget.transaction.type[0].toUpperCase() +
+                                      widget.transaction.type.substring(1),
                                 ),
                                 _buildInfoColumn(
                                   "Category",
-                                  transaction.category,
+                                  widget.transaction.category,
                                 ),
-                                _buildInfoColumn("Wallet", transaction.wallet),
+                                _buildInfoColumn(
+                                  "Wallet",
+                                  widget.transaction.wallet,
+                                ),
                               ],
                             ),
                           ),
@@ -212,8 +379,8 @@ class TransactionDetailPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  transaction.description.isNotEmpty
-                                      ? transaction.description
+                                  widget.transaction.description.isNotEmpty
+                                      ? widget.transaction.description
                                       : 'No description provided',
                                   style: const TextStyle(fontSize: 13),
                                 ),
@@ -226,8 +393,8 @@ class TransactionDetailPage extends StatelessWidget {
                       ),
                     ),
 
-                    // UPDATED: Image Section - ONLY CLOUDINARY
-                    if (transaction.receiptImageUrl != null) ...[
+                    // Image Section
+                    if (widget.transaction.receiptImageUrl != null) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
@@ -236,6 +403,8 @@ class TransactionDetailPage extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
                               child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     "Receipt",
@@ -245,7 +414,37 @@ class TransactionDetailPage extends StatelessWidget {
                                       color: Colors.grey[700],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  if (!_isSaving)
+                                    InkWell(
+                                      onTap: _saveImageToDevice,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.download,
+                                            size: 18,
+                                            color: Colors.blue,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Save',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.blue,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -254,11 +453,39 @@ class TransactionDetailPage extends StatelessWidget {
                         ),
                       ),
                     ] else
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'No receipt attached',
-                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Receipt",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: isTablet ? 16 : 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'No receipt attached\n(Add receipt in edit page)',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -279,15 +506,7 @@ class TransactionDetailPage extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditTransactionPage(
-                                transaction: transaction,
-                                transactionId: transactionId,
-                              ),
-                            ),
-                          ),
+                          onPressed: _navigateToEditPage,
                           child: Text(
                             "Edit Transaction",
                             style: GoogleFonts.poppins(
@@ -309,49 +528,18 @@ class TransactionDetailPage extends StatelessWidget {
     );
   }
 
-  // UPDATED: Build image preview for Cloudinary images only
   Widget _buildCloudinaryImagePreview(
     double imageHeight,
     BuildContext context,
   ) {
-    final cloudinaryUrl = transaction.receiptImageUrl;
-
-    if (cloudinaryUrl == null) {
-      return Container(
-        height: imageHeight,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.photo, size: 40, color: Colors.grey),
-              SizedBox(height: 8),
-              Text('No image available'),
-            ],
-          ),
-        ),
-      );
-    }
-
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => FullScreenImageViewer(
-            imagePath: cloudinaryUrl,
-            isNetworkImage: true,
-          ),
-        ),
-      ),
+      onTap: _viewFullScreen,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
             CachedNetworkImage(
-              imageUrl: cloudinaryUrl,
+              imageUrl: widget.transaction.receiptImageUrl!,
               height: imageHeight,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -375,8 +563,28 @@ class TransactionDetailPage extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Cloudinary badge overlay
+            // Overlay with save button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: _isSaving
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(Icons.download, color: Colors.white, size: 16),
+              ),
+            ),
           ],
         ),
       ),

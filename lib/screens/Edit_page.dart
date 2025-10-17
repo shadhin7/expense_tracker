@@ -1,6 +1,8 @@
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
 import 'package:expense_track/models/transaction_model.dart';
+import 'package:expense_track/services/cloudinary_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,6 +28,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   String? cloudinaryImageUrl; // ONLY Cloudinary URL
   bool isRepeat = false;
   bool _isSubmitting = false;
+  bool _isUploadingImage = false;
 
   final List<String> wallets = ['Cash', 'Card', 'Bank', 'Credit Card'];
   final List<String> categories = [
@@ -38,6 +41,8 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     'Freelance',
     'Bonus',
   ];
+
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   @override
   void initState() {
@@ -69,13 +74,22 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     super.dispose();
   }
 
-  // UPDATED: Image capture methods - ONLY CLOUD OPTIONS
-  Future<void> _pickImage() async {
-    final balanceProvider = Provider.of<BalanceProvider>(
-      context,
-      listen: false,
-    );
+  // Get user ID from Firebase Auth
+  String _getUserId() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+    return user.uid;
+  }
 
+  // Generate temporary transaction ID for upload
+  String _generateTempTransactionId() {
+    return 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  // UPDATED: Image capture methods - Web compatible Cloudinary
+  Future<void> _pickImage() async {
     // Show simplified options dialog - ONLY CLOUD
     final option = await showDialog<int>(
       context: context,
@@ -94,7 +108,10 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
           if (cloudinaryImageUrl != null) // ADD THIS: Remove option
             TextButton(
               onPressed: () => Navigator.pop(context, 3), // Remove image
-              child: Text('🗑️ Remove Receipt'),
+              child: Text(
+                '🗑️ Remove Receipt',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           TextButton(
             onPressed: () => Navigator.pop(context, 0), // Cancel
@@ -106,15 +123,26 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
 
     if (option == null || option == 0) return;
 
+    setState(() {
+      _isUploadingImage = true;
+    });
+
     try {
       String? newImageUrl;
+      final userId = _getUserId();
 
       switch (option) {
         case 1: // Camera + Cloudinary
-          newImageUrl = await balanceProvider.takePhotoAndUpload();
+          newImageUrl = await _cloudinaryService.takePhotoAndUpload(
+            userId: userId,
+            transactionId: _generateTempTransactionId(),
+          );
           break;
         case 2: // Gallery + Cloudinary
-          newImageUrl = await balanceProvider.pickFromGalleryAndUpload();
+          newImageUrl = await _cloudinaryService.pickFromGalleryAndUpload(
+            userId: userId,
+            transactionId: _generateTempTransactionId(),
+          );
           break;
         case 3: // Remove image
           setState(() {
@@ -148,6 +176,10 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isUploadingImage = false;
+      });
     }
   }
 
@@ -247,7 +279,6 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final isIncome = widget.transaction.isIncome;
-    final balanceProvider = Provider.of<BalanceProvider>(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -304,10 +335,12 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
                             hintText: 'AED 0',
-                            hintStyle: TextStyle(color: Colors.white),
+                            hintStyle: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                            ),
                           ),
                         ),
                       ),
@@ -343,8 +376,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                             onRemoveImage: _removeImage,
                             onSubmit: (_) => _submitForm(),
                             isLoading: _isSubmitting,
-                            showImageUploadProgress:
-                                balanceProvider.isUploadingImage,
+                            showImageUploadProgress: _isUploadingImage,
                           ),
                         ),
                       ),
@@ -353,7 +385,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                 ),
               ),
               // Upload progress overlay
-              if (balanceProvider.isUploadingImage)
+              if (_isUploadingImage)
                 Container(
                   color: Colors.black54,
                   child: Center(
@@ -367,7 +399,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Uploading Reciept...',
+                          'Uploading Receipt...',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
