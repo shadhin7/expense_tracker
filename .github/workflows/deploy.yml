@@ -3,8 +3,6 @@ name: Deploy Flutter Web to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:
@@ -17,10 +15,13 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.13.0'
+        # Use latest stable - will automatically update
+        flutter-version: 'stable'
     
     - name: Install dependencies
-      run: flutter pub get
+      run: |
+        flutter --version
+        flutter pub get
     
     - name: Build web app
       run: flutter build web --release --base-href "/expense_tracker/"
