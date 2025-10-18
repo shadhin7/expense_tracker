@@ -15,8 +15,8 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Use latest stable - will automatically update
-        flutter-version: 'stable'
+        # Use the exact version from your local machine
+        flutter-version: '3.35.6'
     
     - name: Install dependencies
       run: |
