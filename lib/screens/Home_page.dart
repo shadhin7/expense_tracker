@@ -7,6 +7,7 @@ import 'package:expense_track/screens/expense_page.dart';
 import 'package:expense_track/services/auth_service.dart';
 import 'package:expense_track/transaction/recent10.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -124,7 +125,7 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 8),
                 Text(
                   'AED ${balanceProvider.formattedBalance}',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: balanceSize(),
                     fontWeight: FontWeight.bold,
                   ),

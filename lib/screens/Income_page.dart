@@ -301,7 +301,7 @@ class _IncomePageState extends State<IncomePage> {
                             border: InputBorder.none,
                             hintText: 'AED 0',
                             hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withOpacity(0.9),
                               fontSize: amountFontSize,
                             ),
                           ),
