@@ -133,7 +133,7 @@ class RecentTransactionsWidget extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: const Color.fromARGB(9, 173, 173, 173),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(

@@ -19,11 +19,10 @@ class History extends StatefulWidget {
 
 class _HistoryState extends State<History> {
   DateTime selectedMonth = DateTime.now();
-  String? _selectedCategory;
+  List<String> _selectedCategories = [];
   DateTime? _selectedDate;
   String? _selectedType; // 'All', 'Income', 'Expense', 'Transfer'
   String? _sortBy; // 'Highest', 'Lowest', 'Newest', 'Oldest'
-  bool _showFilters = false;
 
   final List<String> _types = ['All', 'Income', 'Expense'];
   final List<String> _sortOptions = ['Highest', 'Lowest'];
@@ -63,42 +62,35 @@ class _HistoryState extends State<History> {
     return allCategories.toList()..sort();
   }
 
-  List<String> get _filteredCategories {
-    final categoryProvider = context.read<CategoryProvider>();
-    if (_selectedType == 'Income') {
-      final defaultIncomeCategories = ['Salary', 'Bonus', 'Investment'];
-      return <String>{
-        ...defaultIncomeCategories,
-        ...categoryProvider.incomeCategories,
-      }.toList()..sort();
-    }
-
-    if (_selectedType == 'Expense') {
-      final defaultExpenseCategories = [
-        'Food',
-        'Transport',
-        'Shopping',
-        'Entertainment',
-        'Bills',
-        'Healthcare',
-        'Education',
-        'Other',
-      ];
-      return <String>{
-        ...defaultExpenseCategories,
-        ...categoryProvider.expenseCategories,
-      }.toList()..sort();
-    }
-
-    return _allCategories;
-  }
-
   void _pickMonth(BuildContext context) async {
     final picked = await showMonthPicker(
       context: context,
       initialDate: selectedMonth,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      monthPickerDialogSettings: MonthPickerDialogSettings(
+        headerSettings: PickerHeaderSettings(
+          headerBackgroundColor: Colors.blue, // ✅ Header background
+          headerCurrentPageTextStyle: TextStyle(
+            color: Colors.white, // ✅ Header text color
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        dateButtonsSettings: const PickerDateButtonsSettings(
+          currentMonthTextColor: Colors.blue,
+          unselectedMonthsTextColor: Colors.black,
+
+          selectedMonthBackgroundColor:
+              Colors.blue, // ✅ Selected month highlight
+          selectedMonthTextColor: Colors.white, // ✅ Text on selected month
+        ),
+        actionBarSettings: const PickerActionBarSettings(),
+        // Optional: Dialog background
+        dialogSettings: const PickerDialogSettings(
+          dialogBackgroundColor: Colors.white,
+        ),
+      ),
     );
 
     if (picked != null) {
@@ -110,38 +102,21 @@ class _HistoryState extends State<History> {
     }
   }
 
-  void _pickDate(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) setState(() => _selectedDate = picked);
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _selectedCategory = null;
-      _selectedDate = null;
-      _selectedType = 'All';
-      _sortBy = null;
-    });
-  }
-
   // Keep backward-compatible matching but include Transfer checking via tx.type
   bool _matchesFilters(TransactionModel transaction) {
-    if (_selectedCategory != null &&
-        transaction.category != _selectedCategory) {
+    // Category filter
+    if (_selectedCategories.isNotEmpty &&
+        !_selectedCategories.contains(transaction.category)) {
       return false;
     }
 
+    // Date filter
     if (_selectedDate != null &&
         !DateUtils.isSameDay(_selectedDate, transaction.date)) {
       return false;
     }
 
+    // Type filter
     if (_selectedType != null && _selectedType != 'All') {
       if (_selectedType == 'Income' && !transaction.isIncome) return false;
       if (_selectedType == 'Expense' && transaction.isIncome) return false;
@@ -177,142 +152,749 @@ class _HistoryState extends State<History> {
     return sorted;
   }
 
-  Widget _buildPillButton({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? Color.fromARGB(46, 6, 143, 255) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected ? Colors.blue : Colors.grey.shade300,
-            width: selected ? 0.0 : 1.0,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.blue : Colors.black87,
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
+  Future<void> _showFilterModal() async {
+    // Store current values to use in the modal
+    final List<String> tempSelectedCategories = List.from(_selectedCategories);
+    String? tempSelectedType = _selectedType;
+    String? tempSortBy = _sortBy;
+    DateTime? tempSelectedDate = _selectedDate;
 
-  Widget _buildSortPill(String label) {
-    final selected = _sortBy == label;
-    return _buildPillButton(
-      label: label,
-      selected: selected,
-      onTap: () => setState(() {
-        _sortBy = selected ? null : label;
-      }),
-    );
-  }
-
-  Widget _buildTypePill(String label) {
-    final selected = (_selectedType ?? 'All') == label;
-    return _buildPillButton(
-      label: label,
-      selected: selected,
-      onTap: () => setState(() {
-        _selectedType = label;
-        // if previously selected category becomes invalid, clear it
-        if (_selectedCategory != null &&
-            !_filteredCategories.contains(_selectedCategory)) {
-          _selectedCategory = null;
-        }
-      }),
-    );
-  }
-
-  Future<void> _showCategorySelector() async {
-    final categories = _filteredCategories;
-    final selected = await showModalBottomSheet<String?>(
+    await showModalBottomSheet(
+      backgroundColor: Colors.white,
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            List<String> getFilteredCategoriesForModal() {
+              final categoryProvider = context.read<CategoryProvider>();
+              if (tempSelectedType == 'Income') {
+                final defaultIncomeCategories = [
+                  'Salary',
+                  'Bonus',
+                  'Investment',
+                ];
+                return <String>{
+                  ...defaultIncomeCategories,
+                  ...categoryProvider.incomeCategories,
+                }.toList()..sort();
+              }
+
+              if (tempSelectedType == 'Expense') {
+                final defaultExpenseCategories = [
+                  'Food',
+                  'Transport',
+                  'Shopping',
+                  'Entertainment',
+                  'Bills',
+                  'Healthcare',
+                  'Education',
+                  'Other',
+                ];
+                return <String>{
+                  ...defaultExpenseCategories,
+                  ...categoryProvider.expenseCategories,
+                }.toList()..sort();
+              }
+
+              return _allCategories;
+            }
+
+            final modalCategories = getFilteredCategoriesForModal();
+
+            return SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Choose Category',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    Row(
+                      children: [
+                        const Text(
+                          'Filter Transaction',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            setModalState(() {
+                              tempSelectedCategories.clear();
+                              tempSelectedDate = null;
+                              tempSelectedType = 'All';
+                              tempSortBy = null;
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            side: const BorderSide(color: Color(0xFFEDE6FF)),
+                          ),
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Filter By (Income / Expense / Transfer)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Filter By',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(null),
-                      child: const Text('Clear'),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _types.map((t) {
+                          final display = t;
+                          final selected = (tempSelectedType ?? 'All') == t;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: GestureDetector(
+                              onTap: () => setModalState(() {
+                                tempSelectedType = t;
+                                // if previously selected categories become invalid, clear them
+                                if (tempSelectedCategories.isNotEmpty) {
+                                  final validCategories =
+                                      getFilteredCategoriesForModal();
+                                  tempSelectedCategories.removeWhere(
+                                    (cat) => !validCategories.contains(cat),
+                                  );
+                                }
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Color.fromARGB(46, 6, 143, 255)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Colors.blue
+                                        : Colors.grey.shade300,
+                                    width: selected ? 0.0 : 1.0,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.blue.withOpacity(
+                                              0.06,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  display,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.blue
+                                        : Colors.black87,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Sort By row (pills)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Sort By',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _sortOptions.map((s) {
+                          final selected = tempSortBy == s;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: GestureDetector(
+                              onTap: () => setModalState(() {
+                                tempSortBy = selected ? null : s;
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Color.fromARGB(46, 6, 143, 255)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Colors.blue
+                                        : Colors.grey.shade300,
+                                    width: selected ? 0.0 : 1.0,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.blue.withOpacity(
+                                              0.06,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  s,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.blue
+                                        : Colors.black87,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Category Dropdown
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Category',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tempSelectedCategories.isEmpty
+                                ? 'Select Categories'
+                                : '${tempSelectedCategories.length} Selected',
+                            style: TextStyle(
+                              color: tempSelectedCategories.isEmpty
+                                  ? Colors.grey.shade600
+                                  : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (tempSelectedCategories.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: tempSelectedCategories.map((category) {
+                                return InputChip(
+                                  deleteIconColor: Colors.blue,
+                                  shape: RoundedRectangleBorder(
+                                    side: const BorderSide(color: Colors.blue),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  backgroundColor: const Color.fromARGB(
+                                    46,
+                                    6,
+                                    143,
+                                    255,
+                                  ),
+                                  label: Text(
+                                    category,
+                                    style: const TextStyle(color: Colors.blue),
+                                  ),
+                                  onDeleted: () => setModalState(() {
+                                    tempSelectedCategories.remove(category);
+                                  }),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Category Selection List
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.builder(
+                        itemCount: modalCategories.length,
+                        itemBuilder: (context, index) {
+                          final category = modalCategories[index];
+                          final isSelected = tempSelectedCategories.contains(
+                            category,
+                          );
+                          return CheckboxListTile(
+                            activeColor: Colors.blue,
+                            title: Text(category),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  if (!tempSelectedCategories.contains(
+                                    category,
+                                  )) {
+                                    tempSelectedCategories.add(category);
+                                  }
+                                } else {
+                                  tempSelectedCategories.remove(category);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Date Picker
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Date',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: tempSelectedDate ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Colors
+                                          .blue, // Header background & selected date
+                                      onPrimary:
+                                          Colors.white, // Header text color
+                                      onSurface:
+                                          Colors.black, // Default text color
+                                    ),
+                                    dialogBackgroundColor:
+                                        Colors.white, // Calendar background
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+
+                            if (picked != null) {
+                              setModalState(() => tempSelectedDate = picked);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    tempSelectedDate != null
+                                        ? DateFormat(
+                                            'dd/MM/yyyy',
+                                          ).format(tempSelectedDate!)
+                                        : 'Select Date',
+                                    style: TextStyle(
+                                      color: tempSelectedDate != null
+                                          ? Colors.black87
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                                if (tempSelectedDate != null)
+                                  GestureDetector(
+                                    onTap: () => setModalState(
+                                      () => tempSelectedDate = null,
+                                    ),
+                                    child: const Icon(Icons.clear, size: 18),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Apply Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Update the main state with modal values
+                          setState(() {
+                            _selectedCategories = List.from(
+                              tempSelectedCategories,
+                            );
+                            _selectedType = tempSelectedType;
+                            _sortBy = tempSortBy;
+                            _selectedDate = tempSelectedDate;
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Filters applied'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Apply',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
-                      final cat = categories[index];
-                      final isSelected = cat == _selectedCategory;
-                      return ListTile(
-                        title: Text(cat),
-                        trailing: isSelected
-                            ? const Icon(Icons.check, color: Colors.purple)
-                            : null,
-                        onTap: () => Navigator.of(context).pop(cat),
-                      );
-                    },
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemCount: categories.length,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
-
-    if (selected != null) {
-      setState(() => _selectedCategory = selected);
-    } else {
-      // if user cleared in sheet, set to null
-      // NOTE: we only set null here if they explicitly used 'Clear' and the sheet returned null
-      // but this also happens if they cancelled. Keep original to not forcibly clear on cancel.
-    }
   }
 
   bool get _hasActiveFilters =>
-      _selectedCategory != null ||
+      _selectedCategories.isNotEmpty ||
       _selectedDate != null ||
       (_selectedType != null && _selectedType != 'All') ||
       (_sortBy != null);
+
+  // Calculate filtered totals based on current filters
+  Map<String, dynamic> _calculateFilteredTotals(
+    List<TransactionModel> transactions,
+  ) {
+    double totalIncome = 0;
+    double totalExpense = 0;
+
+    // Calculate category-wise totals
+    Map<String, double> categoryTotals = {};
+
+    final filteredTransactions = transactions.where(_matchesFilters).toList();
+
+    for (final transaction in filteredTransactions) {
+      if (transaction.isIncome) {
+        totalIncome += transaction.amount;
+      } else {
+        totalExpense += transaction.amount;
+      }
+
+      // Update category totals
+      if (!categoryTotals.containsKey(transaction.category)) {
+        categoryTotals[transaction.category] = 0;
+      }
+      categoryTotals[transaction.category] =
+          categoryTotals[transaction.category]! + transaction.amount;
+    }
+
+    return {
+      'income': totalIncome,
+      'expense': totalExpense,
+      'balance': totalIncome - totalExpense,
+      'categoryTotals': categoryTotals,
+      'filteredTransactions': filteredTransactions,
+    };
+  }
+
+  Widget _buildSummaryCard(Map<String, dynamic> totals) {
+    final double income = totals['income'] as double;
+    final double expense = totals['expense'] as double;
+    final double balance = totals['balance'] as double;
+    final Map<String, double> categoryTotals =
+        totals['categoryTotals'] as Map<String, double>;
+    final List<TransactionModel> filteredTransactions =
+        totals['filteredTransactions'] as List<TransactionModel>;
+
+    // If we have specific filters, show detailed breakdown
+    if (_selectedCategories.isNotEmpty ||
+        _selectedDate != null ||
+        _selectedType != 'All') {
+      List<Widget> summaryWidgets = [];
+
+      // Show overall totals first
+      summaryWidgets.addAll([
+        const SizedBox(height: 8),
+        const Text(
+          'Overall Summary',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Column(
+              children: [
+                Text(
+                  'Income',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${income.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Text(
+                  'Expense',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${expense.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Text(
+                  'Balance',
+                  style: TextStyle(
+                    color: balance >= 0 ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${balance.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ]);
+
+      // Show category-wise breakdown if categories are selected
+      if (_selectedCategories.isNotEmpty) {
+        summaryWidgets.addAll([
+          const SizedBox(height: 16),
+          const Text(
+            'Category Breakdown',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: _selectedCategories.map((category) {
+              final amount = categoryTotals[category] ?? 0;
+              return Chip(
+                backgroundColor: Colors.white,
+                label: Text(
+                  '$category = AED ${amount.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ]);
+      }
+
+      // Show date-specific total if date is selected
+      if (_selectedDate != null) {
+        double dateTotal = 0;
+        for (final transaction in filteredTransactions) {
+          if (DateUtils.isSameDay(_selectedDate, transaction.date)) {
+            dateTotal += transaction.amount;
+          }
+        }
+
+        summaryWidgets.addAll([
+          const SizedBox(height: 16),
+          const Text(
+            'Date Summary',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Chip(
+            backgroundColor: const Color.fromARGB(46, 6, 143, 255),
+            label: Text(
+              '${DateFormat('dd/MM/yyyy').format(_selectedDate!)}: AED ${dateTotal.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.blue),
+            ),
+          ),
+        ]);
+      }
+
+      return Card(
+        color: Colors.white,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: summaryWidgets,
+          ),
+        ),
+      );
+    }
+
+    // Default summary when no specific filters
+    return Card(
+      color: Colors.white,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Column(
+              children: [
+                Text(
+                  'Income',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${income.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Text(
+                  'Expense',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${expense.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Text(
+                  'Balance',
+                  style: TextStyle(
+                    color: balance >= 0 ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'AED ${balance.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +915,7 @@ class _HistoryState extends State<History> {
             tooltip: 'Select Month',
           ),
           IconButton(
-            onPressed: () => setState(() => _showFilters = !_showFilters),
+            onPressed: _showFilterModal,
             icon: Stack(
               children: [
                 const Icon(Icons.filter_alt),
@@ -365,24 +947,45 @@ class _HistoryState extends State<History> {
               constraints.maxWidth >= 600 && constraints.maxWidth < 1100;
           final isDesktop = constraints.maxWidth >= 1100;
           final horizontalPadding = isDesktop ? 48.0 : (isTablet ? 24.0 : 12.0);
-          final double cardRadius = 18.0;
 
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
               child: Column(
                 children: [
+                  // Summary card
+                  StreamBuilder<List<TransactionModel>>(
+                    stream: provider.getMonthlyTransactionsStream(
+                      '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}',
+                    ),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final transactions = snapshot.data ?? [];
+                      final totals = _calculateFilteredTotals(transactions);
+
+                      return _buildSummaryCard(totals);
+                    },
+                  ),
                   Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: horizontalPadding,
                       vertical: 12,
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+
                       children: [
                         Expanded(
-                          child: Text(
-                            'Showing: ${DateFormat.yMMM().format(selectedMonth)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          child: Center(
+                            child: Text(
+                              'Showing: ${DateFormat.yMMM().format(selectedMonth)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -390,361 +993,102 @@ class _HistoryState extends State<History> {
                     ),
                   ),
 
-                  // Filter card (collapsible)
-                  if (_showFilters)
+                  // Active filter chips
+                  if (_hasActiveFilters)
                     Container(
                       margin: EdgeInsets.symmetric(
                         horizontal: horizontalPadding,
-                        vertical: 8,
                       ),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(cardRadius),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.all(12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          // Title Row with Reset
-                          Row(
-                            children: [
-                              const Text(
-                                'Filter Transaction',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: _clearFilters,
-                                style: TextButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  side: const BorderSide(
-                                    color: Color(0xFFEDE6FF),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Reset',
-                                  style: TextStyle(color: Colors.blue),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Filter By (Income / Expense / Transfer)
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'Filter By',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: _types.map((t) {
-                                // make label prettier: use 'All' as 'All'
-                                final display = t;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 10),
-                                  child: _buildTypePill(display),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Sort By row (pills)
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'Sort By',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: _sortOptions.map((s) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 10),
-                                  child: _buildSortPill(s),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Category chooser and Date picker inline
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: _showCategorySelector,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Expanded(
-                                          child: Text(
-                                            'Choose Category',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          _selectedCategory == null
-                                              ? '0 Selected'
-                                              : '1 Selected',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Date',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 6),
-                              InkWell(
-                                onTap: () => _pickDate(context),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today,
-                                        size: 18,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _selectedDate != null
-                                              ? DateFormat(
-                                                  'dd/MM/yyyy',
-                                                ).format(_selectedDate!)
-                                              : 'Select Date',
-                                          style: TextStyle(
-                                            color: _selectedDate != null
-                                                ? Colors.black87
-                                                : Colors.grey.shade600,
-                                          ),
-                                        ),
-                                      ),
-                                      if (_selectedDate != null)
-                                        GestureDetector(
-                                          onTap: () => setState(
-                                            () => _selectedDate = null,
-                                          ),
-                                          child: const Icon(
-                                            Icons.clear,
-                                            size: 18,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Active filter chips
-                          if (_hasActiveFilters) ...[
-                            const SizedBox(height: 14),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                if (_selectedCategory != null)
-                                  InputChip(
-                                    label: Text('Category: $_selectedCategory'),
-                                    onDeleted: () => setState(
-                                      () => _selectedCategory = null,
-                                    ),
-                                  ),
-                                if (_selectedDate != null)
-                                  InputChip(
-                                    label: Text(
-                                      'Date: ${DateFormat('dd/MM/yyyy').format(_selectedDate!)}',
-                                    ),
-                                    onDeleted: () =>
-                                        setState(() => _selectedDate = null),
-                                  ),
-                                if (_selectedType != null &&
-                                    _selectedType != 'All')
-                                  InputChip(
-                                    label: Text('Type: $_selectedType'),
-                                    onDeleted: () =>
-                                        setState(() => _selectedType = 'All'),
-                                  ),
-                                if (_sortBy != null)
-                                  InputChip(
-                                    label: Text('Sort: $_sortBy'),
-                                    onDeleted: () =>
-                                        setState(() => _sortBy = null),
-                                  ),
-                              ],
-                            ),
-                          ],
-
-                          const SizedBox(height: 18),
-
-                          // Apply big button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                // simply close/hide filters and keep the selected filters applied
-                                setState(() => _showFilters = false);
-                                // optionally provide a small feedback
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Filters applied'),
-                                    behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
+                          if (_selectedCategories.isNotEmpty)
+                            ..._selectedCategories.map((category) {
+                              return InputChip(
+                                deleteIconColor: Colors.blue,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  side: const BorderSide(color: Colors.blue),
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
+                                backgroundColor: const Color.fromARGB(
+                                  46,
+                                  6,
+                                  143,
+                                  255,
+                                ),
+                                label: Text(
+                                  'Category: $category',
+                                  style: const TextStyle(color: Colors.blue),
+                                ),
+                                onDeleted: () => setState(() {
+                                  _selectedCategories.remove(category);
+                                }),
+                              );
+                            }),
+                          if (_selectedDate != null)
+                            InputChip(
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(color: Colors.blue),
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                'Apply',
-                                style: TextStyle(fontSize: 16),
+                              deleteIconColor: Colors.blue,
+                              backgroundColor: const Color.fromARGB(
+                                46,
+                                6,
+                                143,
+                                255,
                               ),
+                              label: Text(
+                                'Date: ${DateFormat('dd/MM/yyyy').format(_selectedDate!)}',
+                                style: const TextStyle(color: Colors.blue),
+                              ),
+                              onDeleted: () =>
+                                  setState(() => _selectedDate = null),
                             ),
-                          ),
+                          if (_selectedType != null && _selectedType != 'All')
+                            InputChip(
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(color: Colors.blue),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              deleteIconColor: Colors.blue,
+                              backgroundColor: const Color.fromARGB(
+                                46,
+                                6,
+                                143,
+                                255,
+                              ),
+                              label: Text(
+                                'Type: $_selectedType',
+                                style: const TextStyle(color: Colors.blue),
+                              ),
+                              onDeleted: () =>
+                                  setState(() => _selectedType = 'All'),
+                            ),
+                          if (_sortBy != null)
+                            InputChip(
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(color: Colors.blue),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              deleteIconColor: Colors.blue,
+                              backgroundColor: const Color.fromARGB(
+                                46,
+                                6,
+                                143,
+                                255,
+                              ),
+                              label: Text(
+                                'Sort: $_sortBy',
+                                style: const TextStyle(color: Colors.blue),
+                              ),
+                              onDeleted: () => setState(() => _sortBy = null),
+                            ),
                         ],
                       ),
                     ),
-
-                  // Summary card
-                  Card(
-                    color: Colors.white,
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Column(
-                            children: [
-                              Text(
-                                'Income',
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'AED ${provider.formattedTotalIncome}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                'Expense',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'AED ${provider.formattedTotalExpense}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                'Balance',
-                                style: TextStyle(
-                                  color: provider.balance >= 0
-                                      ? Colors.green
-                                      : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'AED ${provider.formattedBalance}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
 
                   // Transaction list
                   Expanded(
@@ -779,23 +1123,6 @@ class _HistoryState extends State<History> {
                               .toList();
                           // apply sort
                           filtered = _applySort(filtered);
-
-                          if (_showFilters && transactions.isNotEmpty) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).removeCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Showing ${filtered.length} of ${transactions.length} transactions',
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            });
-                          }
 
                           if (filtered.isEmpty) {
                             return Center(
@@ -846,119 +1173,113 @@ class _HistoryState extends State<History> {
                                   ? 18
                                   : (isTablet ? 16 : 14);
 
-                              return Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => TransactionDetailPage(
-                                          transaction: tx,
-                                          transactionId: tx.id,
-                                        ),
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => TransactionDetailPage(
+                                        transaction: tx,
+                                        transactionId: tx.id,
                                       ),
                                     ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.02,
-                                            ),
-                                            blurRadius: 6,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.all(
-                                              iconPadding,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: isIncome
-                                                  ? Colors.green.shade100
-                                                  : Colors.red.shade100,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Image.asset(
-                                              imagePath,
-                                              width: imageSize,
-                                              height: imageSize,
-                                              fit: BoxFit.contain,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.02),
+                                          blurRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(iconPadding),
+                                          decoration: BoxDecoration(
+                                            color: isIncome
+                                                ? Colors.green.shade100
+                                                : Colors.red.shade100,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  tx.category,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: categoryFont,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  tx.description.isEmpty
-                                                      ? 'No description'
-                                                      : tx.description,
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                ),
-                                              ],
-                                            ),
+                                          child: Image.asset(
+                                            imagePath,
+                                            width: imageSize,
+                                            height: imageSize,
+                                            fit: BoxFit.contain,
                                           ),
-                                          Column(
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.end,
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}',
+                                                tx.category,
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: isIncome
-                                                      ? Colors.green
-                                                      : Colors.red,
+                                                  fontSize: categoryFont,
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                DateFormat(
-                                                  'dd/MM/yyyy',
-                                                ).format(tx.date),
+                                                tx.description.isEmpty
+                                                    ? 'No description'
+                                                    : tx.description,
                                                 style: TextStyle(
                                                   color: Colors.grey[600],
-                                                  fontSize: 12,
                                                 ),
-                                              ),
-                                              Text(
-                                                DateFormat(
-                                                  'hh:mm a',
-                                                ).format(tx.date),
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 12,
-                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: isIncome
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              DateFormat(
+                                                'dd/MM/yyyy',
+                                              ).format(tx.date),
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            Text(
+                                              DateFormat(
+                                                'hh:mm a',
+                                              ).format(tx.date),
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
