@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final balanceProvider = Provider.of<BalanceProvider>(context);
+    // final balanceProvider = Provider.of<BalanceProvider>(context);
     final mq = MediaQuery.of(context);
     final width = mq.size.width;
     // Breakpoints

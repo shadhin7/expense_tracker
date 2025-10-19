@@ -140,20 +140,6 @@ class ProfilePage extends StatelessWidget {
                             },
                           ),
 
-                          // In your main screen somewhere
-                          // ElevatedButton(
-                          //   onPressed: () {
-                          //     Navigator.push(
-                          //       context,
-                          //       MaterialPageRoute(
-                          //         builder: (context) => TestCloudinaryScreen(
-                          //           userId: 'test_user_id',
-                          //         ),
-                          //       ),
-                          //     );
-                          //   },
-                          //   child: Text('Test Cloudinary'),
-                          // ),
                           const SizedBox(height: 12),
 
                           // push logout to bottom on taller screens
@@ -213,6 +199,15 @@ class ProfilePage extends StatelessWidget {
           ),
         );
       },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'currency added successfully!',
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+      ),
     );
   }
 

@@ -320,34 +320,49 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   // UPDATED: Image capture methods - Web compatible Cloudinary
   Future<void> _pickImage() async {
     // Show simplified options dialog - ONLY CLOUD
-    final option = await showDialog<int>(
+    final option = await showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Receipt'),
-        content: const Text('Upload receipt to cloud:'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 1), // Camera + Cloudinary
-            child: const Text('📷 Take Photo'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 2), // Gallery + Cloudinary
-            child: const Text('🖼️ Choose from Gallery'),
-          ),
-          if (cloudinaryImageUrl != null) // ADD THIS: Remove option
-            TextButton(
-              onPressed: () => Navigator.pop(context, 3), // Remove image
-              child: const Text(
-                '🗑️ Remove Receipt',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 0), // Cancel
-            child: const Text('Cancel'),
-          ),
-        ],
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Small drag handle
+              Container(
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildOption(
+                    icon: Icons.camera_alt,
+                    label: "Camera",
+                    onTap: () => Navigator.pop(context, 1),
+                  ),
+                  _buildOption(
+                    icon: Icons.image,
+                    label: "Image",
+                    onTap: () => Navigator.pop(context, 2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
 
     if (option == null || option == 0) return;
@@ -682,4 +697,37 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
       },
     );
   }
+}
+
+Widget _buildOption({
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: 95,
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(52, 33, 149, 243),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.blue, size: 30),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.blue,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
