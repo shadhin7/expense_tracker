@@ -1,13 +1,12 @@
-// balance_provider.dart - FULLY UPDATED
+// balance_provider.dart - UPDATED WITH CUSTOM DATE SUPPORT
 import 'package:expense_track/models/tansaction_entry.dart';
 import 'package:expense_track/models/transaction_model.dart';
+import 'package:expense_track/services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
 
 class BalanceProvider with ChangeNotifier {
@@ -27,9 +26,9 @@ class BalanceProvider with ChangeNotifier {
   List<TransactionEntry> get transactions => _transactions;
   bool get isUploadingImage => _isUploadingImage;
 
-  String get formattedBalance => formatAmount(_balance);
-  String get formattedTotalIncome => formatAmount(_totalIncome);
-  String get formattedTotalExpense => formatAmount(_totalExpense);
+  String get formattedBalance => _balance.toStringAsFixed(2);
+  String get formattedTotalIncome => _totalIncome.toStringAsFixed(2);
+  String get formattedTotalExpense => _totalExpense.toStringAsFixed(2);
 
   BalanceProvider() {
     _initializeUserData();
@@ -113,30 +112,35 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // UPDATED: Add Income with Cloudinary support only
+  // UPDATED: Add Income with custom date support
   Future<void> addIncome(
     double amount,
     String category,
     String description,
     String wallet,
-    String? cloudinaryImageUrl, // ONLY Cloudinary URL, no local path
-  ) async {
+    String? cloudinaryImageUrl, {
+    DateTime? date, // NEW: Optional custom date parameter
+  }) async {
     if (_currentUserId == null) return;
+
+    // Use custom date if provided, otherwise use current date
+    final transactionDate = date ?? DateTime.now();
 
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       type: 'income',
-      date: DateTime.now(),
+      date: transactionDate, // Use the selected date
       category: category,
       description: description,
       wallet: wallet,
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
+      receiptImageUrl: cloudinaryImageUrl,
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
 
+    // Only update local state if transaction is in current month
     if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
       _transactions.add(TransactionEntry(tx.id, tx));
       _balance += tx.amount;
@@ -145,30 +149,35 @@ class BalanceProvider with ChangeNotifier {
     }
   }
 
-  // UPDATED: Add Expense with Cloudinary support only
+  // UPDATED: Add Expense with custom date support
   Future<void> addExpense(
     double amount,
     String category,
     String description,
     String wallet,
-    String? cloudinaryImageUrl, // ONLY Cloudinary URL, no local path
-  ) async {
+    String? cloudinaryImageUrl, {
+    DateTime? date, // NEW: Optional custom date parameter
+  }) async {
     if (_currentUserId == null) return;
+
+    // Use custom date if provided, otherwise use current date
+    final transactionDate = date ?? DateTime.now();
 
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       type: 'expense',
-      date: DateTime.now(),
+      date: transactionDate, // Use the selected date
       category: category,
       description: description,
       wallet: wallet,
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
+      receiptImageUrl: cloudinaryImageUrl,
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
 
+    // Only update local state if transaction is in current month
     if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
       _transactions.add(TransactionEntry(tx.id, tx));
       _balance -= tx.amount;
@@ -184,8 +193,9 @@ class BalanceProvider with ChangeNotifier {
     String newCategory,
     String newDescription,
     String newWallet,
-    String? cloudinaryImageUrl, // ONLY Cloudinary URL
-  ) async {
+    String? cloudinaryImageUrl, {
+    DateTime? date, // NEW: Optional custom date parameter for editing
+  }) async {
     if (_currentUserId == null) return;
 
     final existingTransaction = await _firestoreService.getTransaction(
@@ -209,22 +219,29 @@ class BalanceProvider with ChangeNotifier {
       }
     }
 
+    // Use custom date if provided, otherwise keep existing date
+    final updatedDate = date ?? existingTransaction.date;
+
     // Create updated transaction
     final updated = TransactionModel(
       id: transactionId,
       amount: newAmount,
       type: existingTransaction.type,
-      date: existingTransaction.date,
+      date: updatedDate, // Use updated date
       category: newCategory,
       description: newDescription,
       wallet: newWallet,
       userId: _currentUserId!,
-      receiptImageUrl: cloudinaryImageUrl, // Cloudinary URL only
+      receiptImageUrl: cloudinaryImageUrl,
     );
 
     await _firestoreService.updateTransaction(updated, _currentUserId!);
 
-    if (isCurrentMonth) {
+    // Check if updated transaction is in current month
+    final isUpdatedInCurrentMonth =
+        _getMonthKey(updatedDate) == _getMonthKey(DateTime.now());
+
+    if (isUpdatedInCurrentMonth) {
       if (wasIncome) {
         _balance += newAmount;
         _totalIncome += newAmount;
@@ -239,7 +256,13 @@ class BalanceProvider with ChangeNotifier {
       );
       if (index != -1) {
         _transactions[index] = TransactionEntry(transactionId, updated);
+      } else {
+        // Add to local list if it wasn't there before
+        _transactions.add(TransactionEntry(transactionId, updated));
       }
+    } else {
+      // Remove from local list if it's no longer in current month
+      _transactions.removeWhere((entry) => entry.key == transactionId);
     }
 
     notifyListeners();
@@ -381,14 +404,18 @@ class BalanceProvider with ChangeNotifier {
     if (_currentUserId == null) return Stream.value([]);
     return _firestoreService.getAvailableMonthsStream(_currentUserId!);
   }
-}
 
-// Format helper
-String formatAmount(double amount) {
-  if (amount >= 10000) {
-    return "${(amount / 1000).toStringAsFixed(1)}k";
-  } else {
-    return amount.toStringAsFixed(2);
+  // NEW: Get transactions for a specific date range
+  Stream<List<TransactionModel>> getTransactionsByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) {
+    if (_currentUserId == null) return Stream.value([]);
+    return _firestoreService.getTransactionsByDateRange(
+      _currentUserId!,
+      startDate,
+      endDate,
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:expense_track/Login/Login.dart';
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/graph/graph.dart';
 import 'package:expense_track/screens/Income_page.dart';
 import 'package:expense_track/screens/ProfilePage.dart';
@@ -123,12 +124,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 SizedBox(height: 8),
-                Text(
-                  'AED ${balanceProvider.formattedBalance}',
-                  style: GoogleFonts.poppins(
-                    fontSize: balanceSize(),
-                    fontWeight: FontWeight.bold,
-                  ),
+                Consumer2<BalanceProvider, CurrencyProvider>(
+                  builder: (context, balanceProvider, currencyProvider, child) {
+                    return Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${balanceProvider.formattedBalance}',
+                      style: GoogleFonts.poppins(
+                        fontSize: balanceSize(),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
                 SizedBox(height: 20),
                 // Cards layout: always show as row, wrap if not enough space
@@ -150,26 +155,38 @@ class _HomePageState extends State<HomePage> {
                                   borderRadius: cardRadius,
                                 ),
                                 color: Colors.green,
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  textColor: Colors.white,
-                                  title: Text('Income'),
-                                  subtitle: Text(
-                                    balanceProvider.formattedTotalIncome,
-                                    style: TextStyle(
-                                      fontSize: width <= mobileMax ? 14 : 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  leading: Image.asset(
-                                    'assets/images/inc.png',
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.contain,
-                                  ),
+                                child: Consumer2<BalanceProvider, CurrencyProvider>(
+                                  builder:
+                                      (
+                                        context,
+                                        balanceProvider,
+                                        currencyProvider,
+                                        child,
+                                      ) {
+                                        return ListTile(
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          textColor: Colors.white,
+                                          title: Text('Income'),
+                                          subtitle: Text(
+                                            '${currencyProvider.selectedCurrencySymbol} ${balanceProvider.formattedTotalIncome}',
+                                            style: TextStyle(
+                                              fontSize: width <= mobileMax
+                                                  ? 14
+                                                  : 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          leading: Image.asset(
+                                            'assets/images/inc.png',
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        );
+                                      },
                                 ),
                               ),
                             ),
@@ -189,26 +206,38 @@ class _HomePageState extends State<HomePage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: cardRadius,
                                 ),
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  textColor: Colors.white,
-                                  leading: Image.asset(
-                                    'assets/images/ex.png',
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  title: Text('Expense'),
-                                  subtitle: Text(
-                                    balanceProvider.formattedTotalExpense,
-                                    style: TextStyle(
-                                      fontSize: width <= mobileMax ? 14 : 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                child: Consumer2<BalanceProvider, CurrencyProvider>(
+                                  builder:
+                                      (
+                                        context,
+                                        balanceProvider,
+                                        currencyProvider,
+                                        child,
+                                      ) {
+                                        return ListTile(
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          textColor: Colors.white,
+                                          leading: Image.asset(
+                                            'assets/images/ex.png',
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.contain,
+                                          ),
+                                          title: Text('Expense'),
+                                          subtitle: Text(
+                                            '${currencyProvider.selectedCurrencySymbol} ${balanceProvider.formattedTotalExpense}',
+                                            style: TextStyle(
+                                              fontSize: width <= mobileMax
+                                                  ? 14
+                                                  : 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                 ),
                               ),
                             ),

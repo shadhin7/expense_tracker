@@ -56,13 +56,15 @@ class _CategoryManagementPageState extends State<CategoryManagementPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
         centerTitle: true,
         title: const Text('Manage Categories'),
         bottom: TabBar(
           indicatorColor: Colors.blue,
-          unselectedLabelColor: Colors.blueGrey,
+          unselectedLabelColor: Colors.black,
           labelColor: Colors.blue,
           controller: _tabController,
           tabs: const [

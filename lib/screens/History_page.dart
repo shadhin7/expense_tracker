@@ -1,7 +1,6 @@
-// history_page.dart
-// Redesigned History page UI to match the provided screenshot style
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/category_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:expense_track/transaction/iconstest.dart';
 import 'package:expense_track/screens/transaction_detail.dart';
@@ -25,7 +24,7 @@ class _HistoryState extends State<History> {
   String? _sortBy; // 'Highest', 'Lowest', 'Newest', 'Oldest'
 
   final List<String> _types = ['All', 'Income', 'Expense'];
-  final List<String> _sortOptions = ['Highest', 'Lowest'];
+  final List<String> _sortOptions = ['Highest', 'Lowest', 'Newest', 'Oldest'];
 
   @override
   void initState() {
@@ -129,8 +128,14 @@ class _HistoryState extends State<History> {
     return true;
   }
 
+  // Replace the _applySort method with this corrected version
   List<TransactionModel> _applySort(List<TransactionModel> list) {
-    if (_sortBy == null) return list;
+    if (_sortBy == null) {
+      // DEFAULT SORT: Always sort by date descending (newest first) when no sort is selected
+      final sorted = List<TransactionModel>.from(list);
+      sorted.sort((a, b) => b.date.compareTo(a.date));
+      return sorted;
+    }
 
     final sorted = List<TransactionModel>.from(list);
     switch (_sortBy) {
@@ -147,6 +152,8 @@ class _HistoryState extends State<History> {
         sorted.sort((a, b) => a.date.compareTo(b.date));
         break;
       default:
+        // Fallback: sort by date descending
+        sorted.sort((a, b) => b.date.compareTo(a.date));
         break;
     }
     return sorted;
@@ -526,8 +533,9 @@ class _HistoryState extends State<History> {
                                       onSurface:
                                           Colors.black, // Default text color
                                     ),
-                                    dialogBackgroundColor:
-                                        Colors.white, // Calendar background
+                                    dialogTheme: DialogThemeData(
+                                      backgroundColor: Colors.white,
+                                    ), // Calendar background
                                   ),
                                   child: child!,
                                 );
@@ -698,64 +706,68 @@ class _HistoryState extends State<History> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
+        Consumer<CurrencyProvider>(
+          builder: (context, currencyProvider, child) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Text(
-                  'Income',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  children: [
+                    Text(
+                      'Income',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${income.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'AED ${income.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  children: [
+                    Text(
+                      'Expense',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${expense.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text(
+                      'Balance',
+                      style: TextStyle(
+                        color: balance >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${balance.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            Column(
-              children: [
-                Text(
-                  'Expense',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'AED ${expense.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Text(
-                  'Balance',
-                  style: TextStyle(
-                    color: balance >= 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'AED ${balance.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            );
+          },
         ),
       ]);
 
@@ -768,22 +780,26 @@ class _HistoryState extends State<History> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: _selectedCategories.map((category) {
-              final amount = categoryTotals[category] ?? 0;
-              return Chip(
-                backgroundColor: Colors.white,
-                label: Text(
-                  '$category = AED ${amount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: _selectedCategories.map((category) {
+                  final amount = categoryTotals[category] ?? 0;
+                  return Chip(
+                    backgroundColor: Colors.white,
+                    label: Text(
+                      '$category = ${currencyProvider.selectedCurrencySymbol} ${amount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           ),
         ]);
       }
@@ -804,12 +820,16 @@ class _HistoryState extends State<History> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          Chip(
-            backgroundColor: const Color.fromARGB(46, 6, 143, 255),
-            label: Text(
-              '${DateFormat('dd/MM/yyyy').format(_selectedDate!)}: AED ${dateTotal.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.blue),
-            ),
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              return Chip(
+                backgroundColor: const Color.fromARGB(46, 6, 143, 255),
+                label: Text(
+                  '${DateFormat('dd/MM/yyyy').format(_selectedDate!)}: ${currencyProvider.selectedCurrencySymbol} ${dateTotal.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Colors.blue),
+                ),
+              );
+            },
           ),
         ]);
       }
@@ -833,64 +853,68 @@ class _HistoryState extends State<History> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
+        child: Consumer<CurrencyProvider>(
+          builder: (context, currencyProvider, child) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Text(
-                  'Income',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  children: [
+                    Text(
+                      'Income',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${income.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'AED ${income.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  children: [
+                    Text(
+                      'Expense',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${expense.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text(
+                      'Balance',
+                      style: TextStyle(
+                        color: balance >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${currencyProvider.selectedCurrencySymbol} ${balance.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            Column(
-              children: [
-                Text(
-                  'Expense',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'AED ${expense.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Text(
-                  'Balance',
-                  style: TextStyle(
-                    color: balance >= 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'AED ${balance.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -1245,39 +1269,49 @@ class _HistoryState extends State<History> {
                                             ],
                                           ),
                                         ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          children: [
-                                            Text(
-                                              '${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: isIncome
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              DateFormat(
-                                                'dd/MM/yyyy',
-                                              ).format(tx.date),
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Text(
-                                              DateFormat(
-                                                'hh:mm a',
-                                              ).format(tx.date),
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
+                                        Consumer<CurrencyProvider>(
+                                          builder:
+                                              (
+                                                context,
+                                                currencyProvider,
+                                                child,
+                                              ) {
+                                                return Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      '${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${tx.amount.toStringAsFixed(2)}',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: isIncome
+                                                            ? Colors.green
+                                                            : Colors.red,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      DateFormat(
+                                                        'dd/MM/yyyy',
+                                                      ).format(tx.date),
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      DateFormat(
+                                                        'hh:mm a',
+                                                      ).format(tx.date),
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                         ),
                                       ],
                                     ),

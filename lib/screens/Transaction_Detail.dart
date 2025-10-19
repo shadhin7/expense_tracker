@@ -1,6 +1,5 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/screens/Image_page.dart';
 import 'package:expense_track/screens/edit_page.dart';
 import 'package:expense_track/models/transaction_model.dart';
@@ -290,34 +289,38 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  'AED ${widget.transaction.amount.toStringAsFixed(2)}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  widget.transaction.category,
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white70,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Date: ${DateFormat.yMMMd().add_jm().format(widget.transaction.date)}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                            child: Consumer<CurrencyProvider>(
+                              builder: (context, currencyProvider, child) {
+                                return Column(
+                                  children: [
+                                    Text(
+                                      '${currencyProvider.selectedCurrencySymbol} ${widget.transaction.amount.toStringAsFixed(2)}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      widget.transaction.category,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Date: ${DateFormat.yMMMd().add_jm().format(widget.transaction.date)}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 30),

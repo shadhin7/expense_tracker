@@ -1,12 +1,13 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:expense_track/Provider/category_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/Transaction/TransactionForm.dart';
 import 'package:expense_track/services/cloudinary_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class ExpensePage extends StatefulWidget {
   const ExpensePage({super.key});
@@ -25,6 +26,10 @@ class _ExpensePageState extends State<ExpensePage> {
   bool isRepeat = false;
   bool _isSubmitting = false;
   bool _isUploadingImage = false;
+
+  // Date selection variables
+  DateTime _selectedDate = DateTime.now();
+  bool _useCustomDate = false;
 
   final List<String> _defaultCategories = [
     'Food',
@@ -69,6 +74,22 @@ class _ExpensePageState extends State<ExpensePage> {
   // Generate temporary transaction ID for upload
   String _generateTempTransactionId() {
     return 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  // Date selection method
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
   }
 
   // Image capture methods - Web compatible Cloudinary
@@ -150,7 +171,7 @@ class _ExpensePageState extends State<ExpensePage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Receipt uploaded !'),
             backgroundColor: Colors.green,
           ),
@@ -177,7 +198,7 @@ class _ExpensePageState extends State<ExpensePage> {
     });
   }
 
-  // Submit expense with Cloudinary support ONLY
+  // Submit expense with custom date support
   Future<void> _submitExpense(double amount) async {
     if (_isSubmitting) return;
 
@@ -206,12 +227,16 @@ class _ExpensePageState extends State<ExpensePage> {
     });
 
     try {
+      // Use custom date if enabled, otherwise use current date
+      final transactionDate = _useCustomDate ? _selectedDate : DateTime.now();
+
       await Provider.of<BalanceProvider>(context, listen: false).addExpense(
         amount,
         _selectedCategory!,
         _descriptionController.text.trim(),
         _selectedWallet!,
         _cloudinaryImageUrl,
+        date: transactionDate, // Pass the selected date
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -234,6 +259,83 @@ class _ExpensePageState extends State<ExpensePage> {
         _isSubmitting = false;
       });
     }
+  }
+
+  // Build date selector widget
+  Widget _buildDateSelector() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calendar_today, size: 20, color: Colors.red),
+              const SizedBox(width: 8),
+              const Text(
+                'Transaction Date',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              CupertinoSwitch(
+                value: _useCustomDate,
+                onChanged: (value) {
+                  setState(() {
+                    _useCustomDate = value;
+                  });
+                },
+
+                activeTrackColor: Colors.red, // track color when ON
+                thumbColor: Colors.white, // fixed thumb color
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _useCustomDate
+                ? 'Selected Date: ${DateFormat('MMM dd, yyyy').format(_selectedDate)}'
+                : 'Using current date',
+            style: TextStyle(
+              fontSize: 14,
+              color: _useCustomDate ? Colors.red : Colors.grey,
+            ),
+          ),
+          if (_useCustomDate) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _selectDate(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Select Different Date'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -294,25 +396,31 @@ class _ExpensePageState extends State<ExpensePage> {
                         padding: EdgeInsets.symmetric(
                           horizontal: horizontalPadding,
                         ),
-                        child: TextFormField(
-                          controller: _expenseController,
-                          cursorColor: Colors.white,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          style: TextStyle(
-                            fontSize: amountFontSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'AED 0',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: amountFontSize,
-                            ),
-                          ),
+                        child: Consumer<CurrencyProvider>(
+                          builder: (context, currencyProvider, child) {
+                            return TextFormField(
+                              controller: _expenseController,
+                              cursorColor: Colors.white,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              style: TextStyle(
+                                fontSize: amountFontSize,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText:
+                                    '${currencyProvider.selectedCurrencySymbol} 0',
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: amountFontSize,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -326,82 +434,99 @@ class _ExpensePageState extends State<ExpensePage> {
                               topRight: Radius.circular(25),
                             ),
                           ),
-                          child: TransactionForm(
-                            buttonColor: Colors.red,
-                            imagePath: _cloudinaryImageUrl,
-                            onCaptureImage: _handleCaptureImage,
-                            onRemoveImage: _removeImage,
-                            onSubmit: (amount) async =>
-                                await _submitExpense(amount),
-                            selectedCategory: _selectedCategory,
-                            selectedWallet: _selectedWallet,
-                            isRepeat: isRepeat,
-                            categories: allCategories,
-                            wallets: _wallets,
-                            onCategoryChanged: (value) async {
-                              if (value == '+ Add Category') {
-                                final newCategory = await showDialog<String>(
-                                  context: context,
-                                  builder: (context) {
-                                    final controller = TextEditingController();
-                                    return AlertDialog(
-                                      title: const Text('Add Expense Category'),
-                                      content: TextField(
-                                        controller: controller,
-                                        decoration: const InputDecoration(
-                                          hintText: 'Enter new category name',
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(
-                                            context,
-                                            controller.text.trim(),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                // Date selector added here
+                                _buildDateSelector(),
+                                TransactionForm(
+                                  buttonColor: Colors.red,
+                                  imagePath: _cloudinaryImageUrl,
+                                  onCaptureImage: _handleCaptureImage,
+                                  onRemoveImage: _removeImage,
+                                  onSubmit: (amount) async =>
+                                      await _submitExpense(amount),
+                                  selectedCategory: _selectedCategory,
+                                  selectedWallet: _selectedWallet,
+                                  isRepeat: isRepeat,
+                                  categories: allCategories,
+                                  wallets: _wallets,
+                                  onCategoryChanged: (value) async {
+                                    if (value == '+ Add Category') {
+                                      final newCategory = await showDialog<String>(
+                                        context: context,
+                                        builder: (context) {
+                                          final controller =
+                                              TextEditingController();
+                                          return AlertDialog(
+                                            title: const Text(
+                                              'Add Expense Category',
+                                            ),
+                                            content: TextField(
+                                              controller: controller,
+                                              decoration: const InputDecoration(
+                                                hintText:
+                                                    'Enter new category name',
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(
+                                                  context,
+                                                  controller.text.trim(),
+                                                ),
+                                                child: const Text('Add'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+
+                                      if (newCategory != null &&
+                                          newCategory.isNotEmpty) {
+                                        await Provider.of<CategoryProvider>(
+                                          context,
+                                          listen: false,
+                                        ).addUserCategory(
+                                          newCategory,
+                                          'expense',
+                                        );
+
+                                        setState(() {
+                                          _selectedCategory = newCategory;
+                                        });
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Category "$newCategory" added!',
+                                            ),
+                                            backgroundColor: Colors.green,
                                           ),
-                                          child: const Text('Add'),
-                                        ),
-                                      ],
-                                    );
+                                        );
+                                      }
+                                    } else {
+                                      setState(() => _selectedCategory = value);
+                                    }
                                   },
-                                );
-
-                                if (newCategory != null &&
-                                    newCategory.isNotEmpty) {
-                                  await Provider.of<CategoryProvider>(
-                                    context,
-                                    listen: false,
-                                  ).addUserCategory(newCategory, 'expense');
-
-                                  setState(() {
-                                    _selectedCategory = newCategory;
-                                  });
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Category "$newCategory" added!',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              } else {
-                                setState(() => _selectedCategory = value);
-                              }
-                            },
-                            onWalletChanged: (value) =>
-                                setState(() => _selectedWallet = value),
-                            onRepeatChanged: (value) =>
-                                setState(() => isRepeat = value),
-                            amountController: _expenseController,
-                            descriptionController: _descriptionController,
-                            isLoading: _isSubmitting,
-                            showImageUploadProgress: _isUploadingImage,
+                                  onWalletChanged: (value) =>
+                                      setState(() => _selectedWallet = value),
+                                  onRepeatChanged: (value) =>
+                                      setState(() => isRepeat = value),
+                                  amountController: _expenseController,
+                                  descriptionController: _descriptionController,
+                                  isLoading: _isSubmitting,
+                                  showImageUploadProgress: _isUploadingImage,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -420,8 +545,8 @@ class _ExpensePageState extends State<ExpensePage> {
                         CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
                         ),
-                        SizedBox(height: 16),
-                        Text(
+                        const SizedBox(height: 16),
+                        const Text(
                           'Uploading Receipt...',
                           style: TextStyle(
                             color: Colors.white,

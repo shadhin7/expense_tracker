@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class TransactionModel {
   final String id;
@@ -69,29 +70,43 @@ class TransactionModel {
       userId: map['userId'] ?? '',
       amount: (map['amount'] ?? 0.0).toDouble(),
       type: map['type'] ?? '',
-      date:
-          _parseDate(map['date']) ??
-          DateTime.now(), // FIX: Provide default value
+      date: _parseDate(map['date']) ?? DateTime.now(),
       category: map['category'] ?? '',
       description: map['description'] ?? '',
       wallet: map['wallet'] ?? '',
       receiptImageUrl: map['receiptImageUrl'], // ONLY Cloudinary URL
-      createdAt: _parseDate(map['createdAt']), // This can stay nullable
+      createdAt: _parseDate(map['createdAt']),
     );
   }
 
   static DateTime? _parseDate(dynamic dateField) {
     if (dateField == null) return null;
 
-    if (dateField is Timestamp) {
-      return dateField.toDate();
-    } else if (dateField is int) {
-      return DateTime.fromMillisecondsSinceEpoch(dateField);
-    } else if (dateField is String) {
-      return DateTime.tryParse(dateField);
-    } else {
+    try {
+      if (dateField is Timestamp) {
+        return dateField.toDate();
+      } else if (dateField is int) {
+        return DateTime.fromMillisecondsSinceEpoch(dateField);
+      } else if (dateField is String) {
+        return DateTime.tryParse(dateField);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
       return null;
     }
+  }
+
+  // NEW: Helper method to format date for display
+  String get formattedDisplayDate {
+    return DateFormat('MMM dd, yyyy').format(date);
+  }
+
+  // NEW: Helper method to check if date is in current month
+  bool get isInCurrentMonth {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month;
   }
 
   TransactionModel copyWith({
@@ -122,7 +137,7 @@ class TransactionModel {
 
   @override
   String toString() {
-    return 'TransactionModel(id: $id, amount: $amount, type: $type, category: $category, cloudImage: $receiptImageUrl)';
+    return 'TransactionModel(id: $id, amount: $amount, type: $type, category: $category, date: $formattedDisplayDate, cloudImage: $receiptImageUrl)';
   }
 
   // Helper method to check if this is a valid transaction
@@ -141,7 +156,7 @@ class TransactionModel {
   }
 
   // Helper method for amount display
-  String get formattedAmount {
-    return 'AED ${amount.toStringAsFixed(2)}';
+  String get formattedAmountWithoutCurrency {
+    return amount.toStringAsFixed(2);
   }
 }

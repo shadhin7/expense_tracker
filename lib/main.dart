@@ -1,5 +1,6 @@
 import 'package:expense_track/Login/Login.dart';
 import 'package:expense_track/Provider/category_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/screens/Home_page.dart';
 import 'package:expense_track/Provider/balance_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -20,6 +21,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => BalanceProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => CurrencyProvider()),
       ],
       child: MyApp(),
     ),
@@ -27,6 +29,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);

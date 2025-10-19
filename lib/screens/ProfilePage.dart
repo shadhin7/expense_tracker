@@ -1,3 +1,4 @@
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/screens/category_management_page.dart';
 import 'package:expense_track/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -131,6 +132,13 @@ class ProfilePage extends StatelessWidget {
                               );
                             },
                           ),
+                          _buildMenuItem(
+                            icon: Icons.money,
+                            title: 'Currency',
+                            onTap: () {
+                              _showCurrencySelectionDialog(context);
+                            },
+                          ),
 
                           // In your main screen somewhere
                           // ElevatedButton(
@@ -174,6 +182,37 @@ class ProfilePage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  void _showCurrencySelectionDialog(BuildContext context) {
+    final currencyProvider = Provider.of<CurrencyProvider>(
+      context,
+      listen: false,
+    );
+    final currencies = currencyProvider.currencies;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Currency'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: currencies.entries.map((entry) {
+                return ListTile(
+                  title: Text('${entry.key} (${entry.value})'),
+                  onTap: () {
+                    currencyProvider.changeCurrency(entry.key);
+                    Navigator.of(context).pop();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 

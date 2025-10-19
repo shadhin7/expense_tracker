@@ -1,5 +1,5 @@
-// recent10.dart - COMPLETE UPDATED VERSION
 import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/Provider/currency_provider.dart';
 import 'package:expense_track/models/transaction_model.dart';
 import 'package:expense_track/screens/History_page.dart';
 import 'package:expense_track/transaction/iconstest.dart';
@@ -191,33 +191,41 @@ class RecentTransactionsWidget extends StatelessWidget {
                             ),
 
                             // Amount and Date
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "${isIncome ? '+' : '-'} AED ${tx.amount.toStringAsFixed(2)}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: isIncome ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  DateFormat('MMM dd, yyyy').format(tx.date),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  DateFormat('hh:mm a').format(tx.date),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                            Consumer<CurrencyProvider>(
+                              builder: (context, currencyProvider, child) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      "${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${tx.amount.toStringAsFixed(2)}",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: isIncome
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      DateFormat(
+                                        'MMM dd, yyyy',
+                                      ).format(tx.date),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      DateFormat('hh:mm a').format(tx.date),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),
