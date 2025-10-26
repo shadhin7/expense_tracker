@@ -1,7 +1,7 @@
 // balance_provider.dart - UPDATED WITH CUSTOM DATE SUPPORT
-import 'package:expense_track/models/tansaction_entry.dart';
-import 'package:expense_track/models/transaction_model.dart';
-import 'package:expense_track/services/firestore_service.dart';
+import 'package:expense_track/app/core/models/tansaction_entry.dart';
+import 'package:expense_track/app/core/models/transaction_model.dart';
+import 'package:expense_track/app/core/services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';

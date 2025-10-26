@@ -1,8 +1,8 @@
-import 'package:expense_track/Provider/balance_provider.dart';
-import 'package:expense_track/Provider/category_provider.dart';
-import 'package:expense_track/Provider/currency_provider.dart';
-import 'package:expense_track/Transaction/TransactionForm.dart';
-import 'package:expense_track/services/cloudinary_service.dart';
+import 'package:expense_track/app/core/providers/balance_provider.dart';
+import 'package:expense_track/app/core/providers/category_provider.dart';
+import 'package:expense_track/app/core/providers/currency_provider.dart';
+import 'package:expense_track/app/core/services/cloudinary_service.dart';
+import 'package:expense_track/app/features/transactions/widgets/TransactionForm.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

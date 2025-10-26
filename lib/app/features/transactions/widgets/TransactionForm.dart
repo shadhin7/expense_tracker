@@ -1,5 +1,5 @@
-import 'package:expense_track/widgets/CustomDropdown.dart';
-import 'package:expense_track/widgets/RepeatToggle.dart';
+import 'package:expense_track/app/core/widgets/CustomDropdown.dart';
+import 'package:expense_track/app/core/widgets/RepeatToggle.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -112,7 +112,7 @@ class TransactionForm extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // 📂 Category Dropdown
+                // Category Dropdown
                 CustomDropdown(
                   label: 'Category',
                   value: selectedCategory,
@@ -121,7 +121,7 @@ class TransactionForm extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // 💼 Wallet Dropdown
+                // Wallet Dropdown
                 CustomDropdown(
                   label: 'Wallet',
                   value: selectedWallet,

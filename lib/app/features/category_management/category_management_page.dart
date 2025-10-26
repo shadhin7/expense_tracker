@@ -1,4 +1,4 @@
-import 'package:expense_track/Provider/category_provider.dart';
+import 'package:expense_track/app/core/providers/category_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

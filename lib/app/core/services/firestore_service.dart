@@ -2,7 +2,7 @@
 // ignore_for_file: unnecessary_cast
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:expense_track/models/transaction_model.dart';
+import 'package:expense_track/app/core/models/transaction_model.dart';
 
 class FirestoreService {
   // Add a new transaction

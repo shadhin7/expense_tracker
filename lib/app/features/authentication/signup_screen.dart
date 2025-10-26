@@ -1,9 +1,9 @@
-import 'package:expense_track/Provider/balance_provider.dart';
-import 'package:expense_track/screens/Home_page.dart';
+import 'package:expense_track/app/core/providers/balance_provider.dart';
+import 'package:expense_track/app/core/services/auth_service.dart';
+import 'package:expense_track/app/features/home/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -106,7 +106,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
+                    color: Colors.blue,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -123,7 +123,13 @@ class _SignUpPageState extends State<SignUpPage> {
                   decoration: InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.email),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+
                     border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -146,6 +152,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     labelText: 'Password',
                     prefixIcon: Icon(Icons.lock),
                     suffixIcon: IconButton(
@@ -161,6 +171,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       },
                     ),
                     border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -181,6 +192,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     labelText: 'Confirm Password',
                     prefixIcon: Icon(Icons.lock),
                     suffixIcon: IconButton(
@@ -218,7 +233,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _signUp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.blue,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

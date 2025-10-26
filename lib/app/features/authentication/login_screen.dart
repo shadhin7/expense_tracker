@@ -1,11 +1,10 @@
-import 'package:expense_track/Login/LoginSinUp.dart';
-import 'package:expense_track/Provider/balance_provider.dart';
-import 'package:expense_track/screens/Home_page.dart';
-
+import 'package:expense_track/app/core/providers/balance_provider.dart';
+import 'package:expense_track/app/core/services/auth_service.dart';
+import 'package:expense_track/app/features/authentication/signup_screen.dart';
+import 'package:expense_track/app/features/home/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

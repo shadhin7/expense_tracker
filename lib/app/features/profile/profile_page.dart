@@ -1,6 +1,6 @@
-import 'package:expense_track/Provider/currency_provider.dart';
-import 'package:expense_track/screens/category_management_page.dart';
-import 'package:expense_track/services/auth_service.dart';
+import 'package:expense_track/app/core/providers/currency_provider.dart';
+import 'package:expense_track/app/core/services/auth_service.dart';
+import 'package:expense_track/app/features/category_management/category_management_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

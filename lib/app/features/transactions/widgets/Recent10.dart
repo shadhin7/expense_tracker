@@ -1,9 +1,9 @@
-import 'package:expense_track/Provider/balance_provider.dart';
-import 'package:expense_track/Provider/currency_provider.dart';
-import 'package:expense_track/models/transaction_model.dart';
-import 'package:expense_track/screens/History_page.dart';
-import 'package:expense_track/transaction/iconstest.dart';
-import 'package:expense_track/screens/transaction_detail.dart';
+import 'package:expense_track/app/core/models/transaction_model.dart';
+import 'package:expense_track/app/core/providers/balance_provider.dart';
+import 'package:expense_track/app/core/providers/currency_provider.dart';
+import 'package:expense_track/app/features/transactions/screens/history_page.dart';
+import 'package:expense_track/app/features/transactions/screens/transaction_detail.dart';
+import 'package:expense_track/app/features/transactions/widgets/Iconstest.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';

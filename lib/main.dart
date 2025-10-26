@@ -1,12 +1,12 @@
-import 'package:expense_track/Login/Login.dart';
-import 'package:expense_track/Provider/category_provider.dart';
-import 'package:expense_track/Provider/currency_provider.dart';
-import 'package:expense_track/screens/Home_page.dart';
-import 'package:expense_track/Provider/balance_provider.dart';
+import 'package:expense_track/app/core/providers/balance_provider.dart';
+import 'package:expense_track/app/core/providers/category_provider.dart';
+import 'package:expense_track/app/core/providers/currency_provider.dart';
+import 'package:expense_track/app/core/services/auth_service.dart';
+import 'package:expense_track/app/features/authentication/login_screen.dart';
+import 'package:expense_track/app/features/home/home_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'services/auth_service.dart';
 import 'firebase_options.dart'; // <-- import your generated file
 
 void main() async {

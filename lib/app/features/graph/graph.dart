@@ -1,8 +1,8 @@
+import 'package:expense_track/app/core/models/transaction_model.dart';
+import 'package:expense_track/app/core/providers/balance_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Provider/balance_provider.dart'; // Updated import
-import '../models/transaction_model.dart';
 
 class SpendChart extends StatefulWidget {
   const SpendChart({super.key});
