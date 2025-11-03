@@ -196,15 +196,25 @@ class RecentTransactionsWidget extends StatelessWidget {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(
-                                      "${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${tx.amount.toStringAsFixed(2)}",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: isIncome
-                                            ? Colors.green
-                                            : Colors.red,
-                                      ),
+                                    Consumer<CurrencyProvider>(
+                                      builder: (context, currencyProvider, child) {
+                                        final convertedAmount = currencyProvider
+                                            .convert(
+                                              tx.amount,
+                                              'AED', // Assuming the base currency is AED
+                                              currencyProvider.selectedCurrency,
+                                            );
+                                        return Text(
+                                          "${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${convertedAmount.toStringAsFixed(2)}",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: isIncome
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        );
+                                      },
                                     ),
                                     const SizedBox(height: 4),
                                     Text(

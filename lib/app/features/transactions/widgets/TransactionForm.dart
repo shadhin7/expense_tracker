@@ -1,7 +1,9 @@
 import 'package:expense_track/app/core/widgets/CustomDropdown.dart';
 import 'package:expense_track/app/core/widgets/RepeatToggle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 
 class TransactionForm extends StatelessWidget {
   final Color buttonColor;
@@ -21,6 +23,10 @@ class TransactionForm extends StatelessWidget {
   final VoidCallback? onRemoveImage;
   final bool isLoading;
   final bool showImageUploadProgress;
+  final DateTime selectedDate;
+  final bool useCustomDate;
+  final ValueChanged<DateTime> onDateChanged;
+  final ValueChanged<bool> onUseCustomDateChanged;
 
   const TransactionForm({
     super.key,
@@ -41,6 +47,10 @@ class TransactionForm extends StatelessWidget {
     this.onRemoveImage,
     this.isLoading = false,
     this.showImageUploadProgress = false,
+    required this.selectedDate,
+    required this.useCustomDate,
+    required this.onDateChanged,
+    required this.onUseCustomDateChanged,
   });
 
   // REMOVED: _isLocalImage getter since we don't need local storage
@@ -81,6 +91,95 @@ class TransactionForm extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 📅 Date Selector
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: buttonColor, // 👈 dynamic color
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Transaction Date',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          CupertinoSwitch(
+                            value: useCustomDate,
+                            onChanged: onUseCustomDateChanged,
+                            activeTrackColor: buttonColor, // 👈 dynamic color
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        useCustomDate
+                            ? 'Selected Date: ${DateFormat('MMM dd, yyyy').format(selectedDate)}'
+                            : 'Using current date',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: useCustomDate
+                              ? buttonColor
+                              : Colors.grey, // 👈 dynamic color
+                        ),
+                      ),
+                      if (useCustomDate)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
+                                  ),
+                                );
+                                if (picked != null) {
+                                  onDateChanged(picked);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    buttonColor, // 👈 dynamic color
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text('Select Different Date'),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
                 // 💬 Description Field
                 TextFormField(
                   controller: descriptionController,

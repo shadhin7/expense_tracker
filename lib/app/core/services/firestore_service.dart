@@ -1,4 +1,4 @@
-// services/firestore_service.dart - UPDATED WITH DATE RANGE
+// services/firestore_service.dart - UPDATED WITH NEW STREAM METHODS
 // ignore_for_file: unnecessary_cast
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -37,33 +37,6 @@ class FirestoreService {
     } catch (e) {
       print('❌ FirestoreService: Failed to update transaction: $e');
       throw Exception('Failed to update transaction: $e');
-    }
-  }
-
-  // NEW: Update transaction receipt URL only
-  Future<void> updateTransactionReceipt(
-    String transactionId,
-    String? receiptImageUrl, // Can be null to remove receipt
-  ) async {
-    try {
-      print(
-        '🔄 FirestoreService: Updating receipt for transaction $transactionId',
-      );
-
-      final updateData = <String, dynamic>{
-        'receiptImageUrl': receiptImageUrl,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      await FirebaseFirestore.instance
-          .collection('transactions')
-          .doc(transactionId)
-          .update(updateData);
-
-      print('✅ FirestoreService: Receipt updated successfully');
-    } catch (e) {
-      print('❌ FirestoreService: Failed to update receipt: $e');
-      throw Exception('Failed to update receipt: $e');
     }
   }
 
@@ -109,13 +82,41 @@ class FirestoreService {
     }
   }
 
+  // Stream of all transactions for a user
+  Stream<List<TransactionModel>> getAllTransactionsStream(String userId) {
+    return FirebaseFirestore.instance
+        .collection('transactions')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TransactionModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Stream of transactions up to a certain date
+  Stream<List<TransactionModel>> getTransactionsUpToDate(
+      String userId, DateTime date) {
+    return FirebaseFirestore.instance
+        .collection('transactions')
+        .where('userId', isEqualTo: userId)
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(date))
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TransactionModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
   // Stream of last 10 transactions for home page
   Stream<List<TransactionModel>> getLast10TransactionsStream(String userId) {
-    print('🔍 FirestoreService: Getting last 10 transactions for user $userId');
+    print('🔍 FirestoreService: Getting last 10 transactions for user $userId for the current month');
+    
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
 
     return FirebaseFirestore.instance
         .collection('transactions')
         .where('userId', isEqualTo: userId)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth))
         .orderBy('date', descending: true)
         .limit(10)
         .snapshots()

@@ -1,6 +1,7 @@
-// balance_provider.dart - UPDATED WITH CUSTOM DATE SUPPORT
+// balance_provider.dart - UPDATED WITH CARRY-FORWARD BALANCE
 import 'package:expense_track/app/core/models/tansaction_entry.dart';
 import 'package:expense_track/app/core/models/transaction_model.dart';
+import 'package:expense_track/app/core/providers/currency_provider.dart';
 import 'package:expense_track/app/core/services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ class BalanceProvider with ChangeNotifier {
 
   final FirestoreService _firestoreService = FirestoreService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
+  final CurrencyProvider? _currencyProvider;
 
   double get balance => _balance;
   double get totalIncome => _totalIncome;
@@ -26,31 +28,62 @@ class BalanceProvider with ChangeNotifier {
   List<TransactionEntry> get transactions => _transactions;
   bool get isUploadingImage => _isUploadingImage;
 
-  String get formattedBalance => _balance.toStringAsFixed(2);
-  String get formattedTotalIncome => _totalIncome.toStringAsFixed(2);
-  String get formattedTotalExpense => _totalExpense.toStringAsFixed(2);
+  String get formattedBalance {
+    if (_currencyProvider == null) {
+      return _balance.toStringAsFixed(2);
+    }
+    final convertedBalance = _currencyProvider!.convert(
+      _balance,
+      'AED', // Assuming the base currency is AED
+      _currencyProvider!.selectedCurrency,
+    );
+    return convertedBalance.toStringAsFixed(2);
+  }
 
-  BalanceProvider() {
+  String get formattedTotalIncome {
+    if (_currencyProvider == null) {
+      return _totalIncome.toStringAsFixed(2);
+    }
+    final convertedTotalIncome = _currencyProvider!.convert(
+      _totalIncome,
+      'AED', // Assuming the base currency is AED
+      _currencyProvider!.selectedCurrency,
+    );
+    return convertedTotalIncome.toStringAsFixed(2);
+  }
+
+  String get formattedTotalExpense {
+    if (_currencyProvider == null) {
+      return _totalExpense.toStringAsFixed(2);
+    }
+    final convertedTotalExpense = _currencyProvider!.convert(
+      _totalExpense,
+      'AED', // Assuming the base currency is AED
+      _currencyProvider!.selectedCurrency,
+    );
+    return convertedTotalExpense.toStringAsFixed(2);
+  }
+
+  BalanceProvider(this._currencyProvider) {
     _initializeUserData();
   }
 
   // Initialize with user data
   void _initializeUserData() {
-    // Set user from Firebase Auth if available
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _currentUserId = user.uid;
-      _loadCurrentMonthData();
+      _loadInitialData(); // Load all-time balance and current month's transactions
     }
   }
 
-  // Call this method when you know the user is logged in
+  // Set user and load initial data
   void setUser(String userId) {
     _currentUserId = userId;
-    _loadCurrentMonthData();
+    _loadInitialData();
   }
 
-  // Clear data when user logs out
+  // Clear data on logout
   void clearUser() {
     _currentUserId = null;
     _balance = 0;
@@ -65,72 +98,108 @@ class BalanceProvider with ChangeNotifier {
     return DateFormat('yyyy-MM').format(date);
   }
 
-  // Get current user ID
   String? get currentUserId => _currentUserId;
 
-  // UPDATED: Take photo with camera and upload to Cloudinary (ONLY CLOUD)
-  Future<String?> takePhotoAndUpload() async {
-    if (_currentUserId == null) return null;
+  // Load all-time balance and current month's transactions
+  void _loadInitialData() {
+    if (_currentUserId == null) return;
 
-    try {
-      _setUploadingState(true);
-
-      String transactionId = DateTime.now().millisecondsSinceEpoch.toString();
-      String? cloudinaryUrl = await _cloudinaryService.takePhotoAndUpload(
-        userId: _currentUserId!,
-        transactionId: transactionId,
-      );
-
-      return cloudinaryUrl; // This is the Cloudinary URL
-    } catch (e) {
-      print('Error taking and uploading photo: $e');
-      return null;
-    } finally {
-      _setUploadingState(false);
-    }
+    // Get the total balance from all transactions
+    _firestoreService.getAllTransactionsStream(_currentUserId!).listen((allTransactions) {
+      double totalBalance = 0;
+      for (final tx in allTransactions) {
+        if (tx.isIncome) {
+          totalBalance += tx.amount;
+        } else {
+          totalBalance -= tx.amount;
+        }
+      }
+      _balance = totalBalance;
+      
+      // After getting the all-time balance, load current month's details
+      _loadMonthData(DateTime.now(), keepBalance: true);
+    });
   }
 
-  // UPDATED: Pick from gallery and upload to Cloudinary (ONLY CLOUD)
-  Future<String?> pickFromGalleryAndUpload() async {
-    if (_currentUserId == null) return null;
-
-    try {
-      _setUploadingState(true);
-
-      String transactionId = DateTime.now().millisecondsSinceEpoch.toString();
-      String? cloudinaryUrl = await _cloudinaryService.pickFromGalleryAndUpload(
-        userId: _currentUserId!,
-        transactionId: transactionId,
-      );
-
-      return cloudinaryUrl; // This is the Cloudinary URL
-    } catch (e) {
-      print('Error picking and uploading from gallery: $e');
-      return null;
-    } finally {
-      _setUploadingState(false);
-    }
+  // Load data for a specific month
+  void loadMonth(DateTime selectedDate) {
+    if (_currentUserId == null) return;
+    _loadMonthData(selectedDate);
   }
 
-  // UPDATED: Add Income with custom date support
+  // Load monthly transaction data
+  void _loadMonthData(DateTime targetDate, {bool keepBalance = false}) {
+    if (_currentUserId == null) return;
+
+    final monthKey = _getMonthKey(targetDate);
+
+    // Listen to Firestore stream for this month's transactions
+    _firestoreService.getMonthlyTransactionsStream(monthKey, _currentUserId!).listen((monthlyTransactions) {
+      double monthlyIncome = 0;
+      double monthlyExpense = 0;
+      
+      List<TransactionEntry> transactionEntries = [];
+
+      for (final tx in monthlyTransactions) {
+        transactionEntries.add(TransactionEntry(tx.id, tx));
+        if (tx.isIncome) {
+          monthlyIncome += tx.amount;
+        } else {
+          monthlyExpense += tx.amount;
+        }
+      }
+
+      _totalIncome = monthlyIncome;
+      _totalExpense = monthlyExpense;
+      _transactions = transactionEntries;
+
+      if (!keepBalance) {
+        // If not preserving balance, recalculate it based on all transactions up to the end of the selected month
+        _recalculateBalanceForMonth(targetDate);
+      } else {
+        notifyListeners(); // If just updating monthly figures, notify listeners
+      }
+    });
+  }
+  
+  // Recalculate balance up to a certain month
+  void _recalculateBalanceForMonth(DateTime targetDate) {
+    if (_currentUserId == null) return;
+    
+    // Get the last day of the selected month
+    final endOfMonth = DateTime(targetDate.year, targetDate.month + 1, 0);
+
+    _firestoreService.getTransactionsUpToDate(_currentUserId!, endOfMonth).listen((transactions) {
+      double newBalance = 0;
+      for (final tx in transactions) {
+        if (tx.isIncome) {
+          newBalance += tx.amount;
+        } else {
+          newBalance -= tx.amount;
+        }
+      }
+      _balance = newBalance;
+      notifyListeners();
+    });
+  }
+  
+  // UPDATED: Add Income
   Future<void> addIncome(
     double amount,
     String category,
     String description,
     String wallet,
     String? cloudinaryImageUrl, {
-    DateTime? date, // NEW: Optional custom date parameter
+    DateTime? date,
   }) async {
     if (_currentUserId == null) return;
 
-    // Use custom date if provided, otherwise use current date
     final transactionDate = date ?? DateTime.now();
-
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       type: 'income',
-      date: transactionDate, // Use the selected date
+      date: transactionDate,
       category: category,
       description: description,
       wallet: wallet,
@@ -139,35 +208,26 @@ class BalanceProvider with ChangeNotifier {
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
-
-    // Only update local state if transaction is in current month
-    if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
-      _transactions.add(TransactionEntry(tx.id, tx));
-      _balance += tx.amount;
-      _totalIncome += tx.amount;
-      notifyListeners();
-    }
+    _loadInitialData(); // Reload all data
   }
 
-  // UPDATED: Add Expense with custom date support
+  // UPDATED: Add Expense
   Future<void> addExpense(
     double amount,
     String category,
     String description,
     String wallet,
     String? cloudinaryImageUrl, {
-    DateTime? date, // NEW: Optional custom date parameter
+    DateTime? date,
   }) async {
     if (_currentUserId == null) return;
-
-    // Use custom date if provided, otherwise use current date
+    
     final transactionDate = date ?? DateTime.now();
-
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       type: 'expense',
-      date: transactionDate, // Use the selected date
+      date: transactionDate,
       category: category,
       description: description,
       wallet: wallet,
@@ -176,17 +236,10 @@ class BalanceProvider with ChangeNotifier {
     );
 
     await _firestoreService.addTransaction(tx, _currentUserId!);
-
-    // Only update local state if transaction is in current month
-    if (_getMonthKey(tx.date) == _getMonthKey(DateTime.now())) {
-      _transactions.add(TransactionEntry(tx.id, tx));
-      _balance -= tx.amount;
-      _totalExpense += tx.amount;
-      notifyListeners();
-    }
+    _loadInitialData(); // Reload all data
   }
 
-  // UPDATED: Edit Transaction with Cloudinary support only
+  // UPDATED: Edit Transaction
   Future<void> editTransaction(
     String transactionId,
     double newAmount,
@@ -194,40 +247,19 @@ class BalanceProvider with ChangeNotifier {
     String newDescription,
     String newWallet,
     String? cloudinaryImageUrl, {
-    DateTime? date, // NEW: Optional custom date parameter for editing
+    DateTime? date,
   }) async {
     if (_currentUserId == null) return;
 
-    final existingTransaction = await _firestoreService.getTransaction(
-      transactionId,
-      _currentUserId!,
-    );
+    final existingTransaction = await _firestoreService.getTransaction(transactionId, _currentUserId!);
     if (existingTransaction == null) return;
-
-    final wasIncome = existingTransaction.isIncome;
-    final isCurrentMonth =
-        _getMonthKey(existingTransaction.date) == _getMonthKey(DateTime.now());
-
-    // Revert old values if in current month
-    if (isCurrentMonth) {
-      if (wasIncome) {
-        _balance -= existingTransaction.amount;
-        _totalIncome -= existingTransaction.amount;
-      } else {
-        _balance += existingTransaction.amount;
-        _totalExpense -= existingTransaction.amount;
-      }
-    }
-
-    // Use custom date if provided, otherwise keep existing date
+    
     final updatedDate = date ?? existingTransaction.date;
-
-    // Create updated transaction
     final updated = TransactionModel(
       id: transactionId,
       amount: newAmount,
       type: existingTransaction.type,
-      date: updatedDate, // Use updated date
+      date: updatedDate,
       category: newCategory,
       description: newDescription,
       wallet: newWallet,
@@ -236,157 +268,25 @@ class BalanceProvider with ChangeNotifier {
     );
 
     await _firestoreService.updateTransaction(updated, _currentUserId!);
-
-    // Check if updated transaction is in current month
-    final isUpdatedInCurrentMonth =
-        _getMonthKey(updatedDate) == _getMonthKey(DateTime.now());
-
-    if (isUpdatedInCurrentMonth) {
-      if (wasIncome) {
-        _balance += newAmount;
-        _totalIncome += newAmount;
-      } else {
-        _balance -= newAmount;
-        _totalExpense += newAmount;
-      }
-
-      // Update transaction in local list
-      final index = _transactions.indexWhere(
-        (entry) => entry.key == transactionId,
-      );
-      if (index != -1) {
-        _transactions[index] = TransactionEntry(transactionId, updated);
-      } else {
-        // Add to local list if it wasn't there before
-        _transactions.add(TransactionEntry(transactionId, updated));
-      }
-    } else {
-      // Remove from local list if it's no longer in current month
-      _transactions.removeWhere((entry) => entry.key == transactionId);
-    }
-
-    notifyListeners();
+    _loadInitialData(); // Reload all data
   }
 
-  // NEW: Update transaction receipt URL
-  Future<void> updateTransactionReceipt(
-    String transactionId,
-    String? receiptImageUrl, // Can be null to remove receipt
-  ) async {
-    if (_currentUserId == null) return;
-
-    try {
-      // First, get the existing transaction
-      final existingTransaction = await _firestoreService.getTransaction(
-        transactionId,
-        _currentUserId!,
-      );
-
-      if (existingTransaction == null) return;
-
-      // Create updated transaction with new receipt URL
-      final updated = TransactionModel(
-        id: transactionId,
-        amount: existingTransaction.amount,
-        type: existingTransaction.type,
-        date: existingTransaction.date,
-        category: existingTransaction.category,
-        description: existingTransaction.description,
-        wallet: existingTransaction.wallet,
-        userId: _currentUserId!,
-        receiptImageUrl: receiptImageUrl, // Updated Cloudinary URL
-      );
-
-      // Update in Firestore
-      await _firestoreService.updateTransaction(updated, _currentUserId!);
-
-      // Update in local state if it's in current month
-      final isCurrentMonth =
-          _getMonthKey(existingTransaction.date) ==
-          _getMonthKey(DateTime.now());
-
-      if (isCurrentMonth) {
-        final index = _transactions.indexWhere(
-          (entry) => entry.key == transactionId,
-        );
-        if (index != -1) {
-          _transactions[index] = TransactionEntry(transactionId, updated);
-          notifyListeners();
-        }
-      }
-    } catch (e) {
-      print('Error updating transaction receipt: $e');
-      throw Exception('Failed to update receipt: $e');
-    }
-  }
-
-  // Helper method
-  void _setUploadingState(bool uploading) {
-    _isUploadingImage = uploading;
-    notifyListeners();
-  }
-
-  // Delete Transaction with Firestore
+  // Delete Transaction
   Future<void> deleteTransaction(String transactionId) async {
     if (_currentUserId == null) return;
     await _firestoreService.deleteTransaction(transactionId, _currentUserId!);
-    _loadCurrentMonthData();
-  }
-
-  // Load Current Month Data
-  void _loadCurrentMonthData() {
-    if (_currentUserId == null) return;
-    _loadMonthData(DateTime.now());
-  }
-
-  // Load Specific Month Data
-  void loadMonth(DateTime selectedDate) {
-    if (_currentUserId == null) return;
-    _loadMonthData(selectedDate);
-  }
-
-  // Load Month Data
-  void _loadMonthData(DateTime targetDate) {
-    if (_currentUserId == null) return;
-
-    final monthKey = _getMonthKey(targetDate);
-
-    _balance = 0;
-    _totalIncome = 0;
-    _totalExpense = 0;
-    _transactions = [];
-
-    // Listen to Firestore stream for this month
-    _firestoreService
-        .getMonthlyTransactionsStream(monthKey, _currentUserId!)
-        .listen((transactions) {
-          _balance = 0;
-          _totalIncome = 0;
-          _totalExpense = 0;
-          _transactions = [];
-
-          for (final tx in transactions) {
-            _transactions.add(TransactionEntry(tx.id, tx));
-            if (tx.isIncome) {
-              _balance += tx.amount;
-              _totalIncome += tx.amount;
-            } else {
-              _balance -= tx.amount;
-              _totalExpense += tx.amount;
-            }
-          }
-
-          notifyListeners();
-        });
+    _loadInitialData(); // Reload all data
   }
 
   // Stream Methods
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(String monthKey) {
     if (_currentUserId == null) return Stream.value([]);
-    return _firestoreService.getMonthlyTransactionsStream(
-      monthKey,
-      _currentUserId!,
-    );
+    return _firestoreService.getMonthlyTransactionsStream(monthKey, _currentUserId!);
+  }
+
+  Stream<List<TransactionModel>> getAllTransactionsStream() {
+    if (_currentUserId == null) return Stream.value([]);
+    return _firestoreService.getAllTransactionsStream(_currentUserId!);
   }
 
   Stream<List<TransactionModel>> getLast10TransactionsStream() {
@@ -405,7 +305,6 @@ class BalanceProvider with ChangeNotifier {
     return _firestoreService.getAvailableMonthsStream(_currentUserId!);
   }
 
-  // NEW: Get transactions for a specific date range
   Stream<List<TransactionModel>> getTransactionsByDateRange(
     DateTime startDate,
     DateTime endDate,
@@ -419,7 +318,6 @@ class BalanceProvider with ChangeNotifier {
   }
 }
 
-// Month picker
 void pickMonth(BuildContext context) async {
   final selected = await showMonthPicker(
     context: context,

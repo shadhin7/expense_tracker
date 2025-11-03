@@ -11,7 +11,7 @@ class SpendChart extends StatefulWidget {
   State<SpendChart> createState() => _SpendChartState();
 }
 
-class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
+class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabController;
 
   @override
@@ -37,25 +37,34 @@ class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
   ) {
     final now = DateTime.now();
 
-    final filtered = transactions.where((tx) {
+    var filtered = transactions.where((tx) {
       final txDate = tx.date;
       final diff = now.difference(txDate);
+
       switch (tabIndex) {
         case 0: // Today
-          return diff.inDays == 0 &&
-              txDate.day == now.day &&
+          return txDate.day == now.day &&
               txDate.month == now.month &&
               txDate.year == now.year;
         case 1: // Week
           return diff.inDays < 7;
         case 2: // Month
-          return diff.inDays < 30;
+          return txDate.month == now.month && txDate.year == now.year;
         case 3: // Year
-          return diff.inDays < 365;
+          return txDate.year == now.year;
         default:
           return true;
       }
     }).toList();
+
+    if (tabIndex == 3) {
+      // For the year, group by month
+      Map<int, double> monthlyTotals = {};
+      for (var tx in filtered) {
+        monthlyTotals.update(tx.date.month, (value) => value + tx.amount, ifAbsent: () => tx.amount);
+      }
+      return monthlyTotals.entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
+    }
 
     filtered.sort((a, b) => a.date.compareTo(b.date));
 
@@ -67,10 +76,9 @@ class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Needed for AutomaticKeepAliveClientMixin
     return StreamBuilder<List<TransactionModel>>(
-      stream: Provider.of<BalanceProvider>(
-        context,
-      ).getLast10TransactionsStream(),
+      stream: Provider.of<BalanceProvider>(context).getAllTransactionsStream(),
       builder: (context, snapshot) {
         List<TransactionModel> transactions = [];
 
@@ -156,4 +164,7 @@ class _SpendChartState extends State<SpendChart> with TickerProviderStateMixin {
       },
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // Keep the state alive
 }

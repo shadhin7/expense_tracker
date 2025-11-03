@@ -19,9 +19,13 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => BalanceProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => CurrencyProvider()),
+        ChangeNotifierProxyProvider<CurrencyProvider, BalanceProvider>(
+          create: (context) => BalanceProvider(Provider.of<CurrencyProvider>(context, listen: false)),
+          update: (context, currencyProvider, previous) =>
+              BalanceProvider(currencyProvider),
+        ),
       ],
       child: MyApp(),
     ),

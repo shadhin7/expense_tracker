@@ -44,9 +44,9 @@ class _HistoryState extends State<History> {
     final categoryProvider = context.read<CategoryProvider>();
     final defaultCategories = [
       'Food',
+      'Transport'
       'Shopping',
-      'Bills',
-      'Healthcare',
+      'Bills'
       'Salary',
       'Bonus',
       'Other',
@@ -182,7 +182,7 @@ class _HistoryState extends State<History> {
                 final defaultIncomeCategories = [
                   'Salary',
                   'Bonus',
-                  'Investment',
+                  'Freelance'
                 ];
                 return <String>{
                   ...defaultIncomeCategories,
@@ -195,10 +195,7 @@ class _HistoryState extends State<History> {
                   'Food',
                   'Transport',
                   'Shopping',
-                  'Entertainment',
                   'Bills',
-                  'Healthcare',
-                  'Education',
                   'Other',
                 ];
                 return <String>{
@@ -708,6 +705,21 @@ class _HistoryState extends State<History> {
         const SizedBox(height: 12),
         Consumer<CurrencyProvider>(
           builder: (context, currencyProvider, child) {
+            final convertedIncome = currencyProvider.convert(
+              income,
+              'AED', // Assuming the base currency is AED
+              currencyProvider.selectedCurrency,
+            );
+            final convertedExpense = currencyProvider.convert(
+              expense,
+              'AED', // Assuming the base currency is AED
+              currencyProvider.selectedCurrency,
+            );
+            final convertedBalance = currencyProvider.convert(
+              balance,
+              'AED', // Assuming the base currency is AED
+              currencyProvider.selectedCurrency,
+            );
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -721,7 +733,7 @@ class _HistoryState extends State<History> {
                       ),
                     ),
                     Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${income.toStringAsFixed(2)}',
+                      '${currencyProvider.selectedCurrencySymbol} ${convertedIncome.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -739,7 +751,7 @@ class _HistoryState extends State<History> {
                       ),
                     ),
                     Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${expense.toStringAsFixed(2)}',
+                      '${currencyProvider.selectedCurrencySymbol} ${convertedExpense.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -752,12 +764,14 @@ class _HistoryState extends State<History> {
                     Text(
                       'Balance',
                       style: TextStyle(
-                        color: balance >= 0 ? Colors.green : Colors.red,
+                        color: convertedBalance >= 0
+                            ? Colors.green
+                            : Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${balance.toStringAsFixed(2)}',
+                      '${currencyProvider.selectedCurrencySymbol} ${convertedBalance.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -789,12 +803,21 @@ class _HistoryState extends State<History> {
                   final amount = categoryTotals[category] ?? 0;
                   return Chip(
                     backgroundColor: Colors.white,
-                    label: Text(
-                      '$category = ${currencyProvider.selectedCurrencySymbol} ${amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    label: Consumer<CurrencyProvider>(
+                      builder: (context, currencyProvider, child) {
+                        final convertedAmount = currencyProvider.convert(
+                          amount,
+                          'AED', // Assuming the base currency is AED
+                          currencyProvider.selectedCurrency,
+                        );
+                        return Text(
+                          '$category = ${currencyProvider.selectedCurrencySymbol} ${convertedAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        );
+                      },
                     ),
                   );
                 }).toList(),
@@ -824,9 +847,18 @@ class _HistoryState extends State<History> {
             builder: (context, currencyProvider, child) {
               return Chip(
                 backgroundColor: const Color.fromARGB(46, 6, 143, 255),
-                label: Text(
-                  '${DateFormat('dd/MM/yyyy').format(_selectedDate!)}: ${currencyProvider.selectedCurrencySymbol} ${dateTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.blue),
+                label: Consumer<CurrencyProvider>(
+                  builder: (context, currencyProvider, child) {
+                    final convertedAmount = currencyProvider.convert(
+                      dateTotal,
+                      'AED', // Assuming the base currency is AED
+                      currencyProvider.selectedCurrency,
+                    );
+                    return Text(
+                      '${DateFormat('dd/MM/yyyy').format(_selectedDate!)}: ${currencyProvider.selectedCurrencySymbol} ${convertedAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(color: Colors.blue),
+                    );
+                  },
                 ),
               );
             },
@@ -855,64 +887,85 @@ class _HistoryState extends State<History> {
         padding: const EdgeInsets.all(16.0),
         child: Consumer<CurrencyProvider>(
           builder: (context, currencyProvider, child) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
+            return Builder(
+              builder: (context) {
+                final convertedIncome = currencyProvider.convert(
+                  income,
+                  'AED', // Assuming the base currency is AED
+                  currencyProvider.selectedCurrency,
+                );
+                final convertedExpense = currencyProvider.convert(
+                  expense,
+                  'AED', // Assuming the base currency is AED
+                  currencyProvider.selectedCurrency,
+                );
+                final convertedBalance = currencyProvider.convert(
+                  balance,
+                  'AED', // Assuming the base currency is AED
+                  currencyProvider.selectedCurrency,
+                );
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Text(
-                      'Income',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          'Income',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${currencyProvider.selectedCurrencySymbol} ${convertedIncome.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${income.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          'Expense',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${currencyProvider.selectedCurrencySymbol} ${convertedExpense.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          'Balance',
+                          style: TextStyle(
+                            color: convertedBalance >= 0
+                                ? Colors.green
+                                : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${currencyProvider.selectedCurrencySymbol} ${convertedBalance.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-                Column(
-                  children: [
-                    Text(
-                      'Expense',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${expense.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    Text(
-                      'Balance',
-                      style: TextStyle(
-                        color: balance >= 0 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${currencyProvider.selectedCurrencySymbol} ${balance.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                );
+              },
             );
           },
         ),
@@ -1270,18 +1323,22 @@ class _HistoryState extends State<History> {
                                           ),
                                         ),
                                         Consumer<CurrencyProvider>(
-                                          builder:
-                                              (
-                                                context,
-                                                currencyProvider,
-                                                child,
-                                              ) {
-                                                return Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      '${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${tx.amount.toStringAsFixed(2)}',
+                                          builder: (context, currencyProvider, child) {
+                                            return Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Builder(
+                                                  builder: (context) {
+                                                    final convertedAmount =
+                                                        currencyProvider.convert(
+                                                          tx.amount,
+                                                          'AED', // Assuming the base currency is AED
+                                                          currencyProvider
+                                                              .selectedCurrency,
+                                                        );
+                                                    return Text(
+                                                      '${isIncome ? '+' : '-'} ${currencyProvider.selectedCurrencySymbol} ${convertedAmount.toStringAsFixed(2)}',
                                                       style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
@@ -1289,29 +1346,31 @@ class _HistoryState extends State<History> {
                                                             ? Colors.green
                                                             : Colors.red,
                                                       ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      DateFormat(
-                                                        'dd/MM/yyyy',
-                                                      ).format(tx.date),
-                                                      style: TextStyle(
-                                                        color: Colors.grey[600],
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      DateFormat(
-                                                        'hh:mm a',
-                                                      ).format(tx.date),
-                                                      style: TextStyle(
-                                                        color: Colors.grey[600],
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  DateFormat(
+                                                    'dd/MM/yyyy',
+                                                  ).format(tx.date),
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  DateFormat(
+                                                    'hh:mm a',
+                                                  ).format(tx.date),
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),

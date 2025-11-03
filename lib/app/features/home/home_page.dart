@@ -7,6 +7,7 @@ import 'package:expense_track/app/features/profile/profile_page.dart';
 import 'package:expense_track/app/features/transactions/screens/expense_page.dart';
 import 'package:expense_track/app/features/transactions/screens/income_page.dart';
 import 'package:expense_track/app/features/transactions/widgets/Recent10.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -36,10 +37,14 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (auth.currentUser != null) {
-      print('🏠 HomePage: Initializing data for user ${auth.currentUser!.uid}');
+      if (kDebugMode) {
+        print('HomePage: Initializing data for user ${auth.currentUser!.uid}');
+      }
       balanceProvider.setUser(auth.currentUser!.uid);
     } else {
-      print('❌ HomePage: No user logged in');
+      if (kDebugMode) {
+        print(' HomePage: No user logged in');
+      }
     }
   }
 

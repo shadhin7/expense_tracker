@@ -181,13 +181,13 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               onPressed: _isSaving ? null : _saveImageToDevice,
               icon: _isSaving
                   ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
                   : Icon(Icons.download),
               tooltip: 'Save to Device',
             ),
@@ -346,7 +346,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                               ),
                               child: Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                                MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _buildInfoColumn(
                                     "Type",
@@ -414,7 +414,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                               padding: const EdgeInsets.only(bottom: 8.0),
                               child: Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     "Receipt",
@@ -508,9 +508,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   }
 
   Widget _buildCloudinaryImagePreview(
-    double imageHeight,
-    BuildContext context,
-  ) {
+      double imageHeight,
+      BuildContext context,
+      ) {
     return GestureDetector(
       onTap: _viewFullScreen,
       child: ClipRRect(

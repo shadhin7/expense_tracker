@@ -4,10 +4,8 @@ import 'package:expense_track/app/core/providers/currency_provider.dart';
 import 'package:expense_track/app/core/services/cloudinary_service.dart';
 import 'package:expense_track/app/features/transactions/widgets/TransactionForm.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 class IncomePage extends StatefulWidget {
   const IncomePage({super.key});
@@ -69,20 +67,6 @@ class _IncomePageState extends State<IncomePage> {
   }
 
   // Date selection method
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
 
   // Image capture methods - Web compatible Cloudinary
   void _handleCaptureImage() async {
@@ -254,81 +238,6 @@ class _IncomePageState extends State<IncomePage> {
   }
 
   // Build date selector widget
-  Widget _buildDateSelector() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 20, color: Colors.green),
-              const SizedBox(width: 8),
-              const Text(
-                'Transaction Date',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const Spacer(),
-              CupertinoSwitch(
-                value: _useCustomDate,
-                onChanged: (value) {
-                  setState(() {
-                    _useCustomDate = value;
-                  });
-                },
-
-                activeTrackColor: Colors.green, // track color when ON
-                thumbColor: Colors.white, // fixed thumb color
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _useCustomDate
-                ? 'Selected Date: ${DateFormat('MMM dd, yyyy').format(_selectedDate)}'
-                : 'Using current date',
-            style: TextStyle(
-              fontSize: 14,
-              color: _useCustomDate ? Colors.green : Colors.grey,
-            ),
-          ),
-          if (_useCustomDate) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _selectDate(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Select Different Date'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -430,7 +339,6 @@ class _IncomePageState extends State<IncomePage> {
                             child: Column(
                               children: [
                                 // Date selector added here
-                                _buildDateSelector(),
                                 TransactionForm(
                                   buttonColor: Colors.green,
                                   imagePath: _cloudinaryImageUrl,
@@ -530,6 +438,12 @@ class _IncomePageState extends State<IncomePage> {
                                   descriptionController: _descriptionController,
                                   isLoading: _isSubmitting,
                                   showImageUploadProgress: _isUploadingImage,
+                                  selectedDate: _selectedDate,
+                                  useCustomDate: _useCustomDate,
+                                  onDateChanged: (date) =>
+                                      setState(() => _selectedDate = date),
+                                  onUseCustomDateChanged: (value) =>
+                                      setState(() => _useCustomDate = value),
                                 ),
                               ],
                             ),
