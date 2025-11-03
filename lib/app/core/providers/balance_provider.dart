@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/cloudinary_service.dart';
+// import '../services/cloudinary_service.dart';
 
 class BalanceProvider with ChangeNotifier {
   double _balance = 0;
@@ -19,7 +19,7 @@ class BalanceProvider with ChangeNotifier {
   bool _isUploadingImage = false;
 
   final FirestoreService _firestoreService = FirestoreService();
-  final CloudinaryService _cloudinaryService = CloudinaryService();
+  // final CloudinaryService _cloudinaryService = CloudinaryService();
   final CurrencyProvider? _currencyProvider;
 
   double get balance => _balance;
@@ -32,10 +32,10 @@ class BalanceProvider with ChangeNotifier {
     if (_currencyProvider == null) {
       return _balance.toStringAsFixed(2);
     }
-    final convertedBalance = _currencyProvider!.convert(
+    final convertedBalance = _currencyProvider.convert(
       _balance,
       'AED', // Assuming the base currency is AED
-      _currencyProvider!.selectedCurrency,
+      _currencyProvider.selectedCurrency,
     );
     return convertedBalance.toStringAsFixed(2);
   }
@@ -44,10 +44,10 @@ class BalanceProvider with ChangeNotifier {
     if (_currencyProvider == null) {
       return _totalIncome.toStringAsFixed(2);
     }
-    final convertedTotalIncome = _currencyProvider!.convert(
+    final convertedTotalIncome = _currencyProvider.convert(
       _totalIncome,
       'AED', // Assuming the base currency is AED
-      _currencyProvider!.selectedCurrency,
+      _currencyProvider.selectedCurrency,
     );
     return convertedTotalIncome.toStringAsFixed(2);
   }
@@ -56,10 +56,10 @@ class BalanceProvider with ChangeNotifier {
     if (_currencyProvider == null) {
       return _totalExpense.toStringAsFixed(2);
     }
-    final convertedTotalExpense = _currencyProvider!.convert(
+    final convertedTotalExpense = _currencyProvider.convert(
       _totalExpense,
       'AED', // Assuming the base currency is AED
-      _currencyProvider!.selectedCurrency,
+      _currencyProvider.selectedCurrency,
     );
     return convertedTotalExpense.toStringAsFixed(2);
   }
@@ -105,7 +105,9 @@ class BalanceProvider with ChangeNotifier {
     if (_currentUserId == null) return;
 
     // Get the total balance from all transactions
-    _firestoreService.getAllTransactionsStream(_currentUserId!).listen((allTransactions) {
+    _firestoreService.getAllTransactionsStream(_currentUserId!).listen((
+      allTransactions,
+    ) {
       double totalBalance = 0;
       for (final tx in allTransactions) {
         if (tx.isIncome) {
@@ -115,7 +117,7 @@ class BalanceProvider with ChangeNotifier {
         }
       }
       _balance = totalBalance;
-      
+
       // After getting the all-time balance, load current month's details
       _loadMonthData(DateTime.now(), keepBalance: true);
     });
@@ -134,10 +136,12 @@ class BalanceProvider with ChangeNotifier {
     final monthKey = _getMonthKey(targetDate);
 
     // Listen to Firestore stream for this month's transactions
-    _firestoreService.getMonthlyTransactionsStream(monthKey, _currentUserId!).listen((monthlyTransactions) {
+    _firestoreService.getMonthlyTransactionsStream(monthKey, _currentUserId!).listen((
+      monthlyTransactions,
+    ) {
       double monthlyIncome = 0;
       double monthlyExpense = 0;
-      
+
       List<TransactionEntry> transactionEntries = [];
 
       for (final tx in monthlyTransactions) {
@@ -161,28 +165,30 @@ class BalanceProvider with ChangeNotifier {
       }
     });
   }
-  
+
   // Recalculate balance up to a certain month
   void _recalculateBalanceForMonth(DateTime targetDate) {
     if (_currentUserId == null) return;
-    
+
     // Get the last day of the selected month
     final endOfMonth = DateTime(targetDate.year, targetDate.month + 1, 0);
 
-    _firestoreService.getTransactionsUpToDate(_currentUserId!, endOfMonth).listen((transactions) {
-      double newBalance = 0;
-      for (final tx in transactions) {
-        if (tx.isIncome) {
-          newBalance += tx.amount;
-        } else {
-          newBalance -= tx.amount;
-        }
-      }
-      _balance = newBalance;
-      notifyListeners();
-    });
+    _firestoreService
+        .getTransactionsUpToDate(_currentUserId!, endOfMonth)
+        .listen((transactions) {
+          double newBalance = 0;
+          for (final tx in transactions) {
+            if (tx.isIncome) {
+              newBalance += tx.amount;
+            } else {
+              newBalance -= tx.amount;
+            }
+          }
+          _balance = newBalance;
+          notifyListeners();
+        });
   }
-  
+
   // UPDATED: Add Income
   Future<void> addIncome(
     double amount,
@@ -221,7 +227,7 @@ class BalanceProvider with ChangeNotifier {
     DateTime? date,
   }) async {
     if (_currentUserId == null) return;
-    
+
     final transactionDate = date ?? DateTime.now();
     final tx = TransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -251,9 +257,12 @@ class BalanceProvider with ChangeNotifier {
   }) async {
     if (_currentUserId == null) return;
 
-    final existingTransaction = await _firestoreService.getTransaction(transactionId, _currentUserId!);
+    final existingTransaction = await _firestoreService.getTransaction(
+      transactionId,
+      _currentUserId!,
+    );
     if (existingTransaction == null) return;
-    
+
     final updatedDate = date ?? existingTransaction.date;
     final updated = TransactionModel(
       id: transactionId,
@@ -281,7 +290,10 @@ class BalanceProvider with ChangeNotifier {
   // Stream Methods
   Stream<List<TransactionModel>> getMonthlyTransactionsStream(String monthKey) {
     if (_currentUserId == null) return Stream.value([]);
-    return _firestoreService.getMonthlyTransactionsStream(monthKey, _currentUserId!);
+    return _firestoreService.getMonthlyTransactionsStream(
+      monthKey,
+      _currentUserId!,
+    );
   }
 
   Stream<List<TransactionModel>> getAllTransactionsStream() {
