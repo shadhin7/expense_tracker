@@ -3144,6 +3144,11 @@ path_provider_linux
 path_provider_platform_interface
 path_provider_windows
 plugin_platform_interface
+shared_preferences
+shared_preferences_linux
+shared_preferences_platform_interface
+shared_preferences_web
+shared_preferences_windows
 xdg_directories
 
 Copyright 2013 The Flutter Authors. All rights reserved.
@@ -5964,6 +5969,8 @@ SOFTWARE.
 flutter_plugin_android_lifecycle
 google_fonts
 path_provider_android
+shared_preferences_android
+shared_preferences_foundation
 
 Copyright 2013 The Flutter Authors
 
